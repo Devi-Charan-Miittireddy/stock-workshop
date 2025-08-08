@@ -1,18 +1,25 @@
 import streamlit as st
-import pandas as pd
-import os
+import firebase_admin
+from firebase_admin import credentials, firestore
+from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+import os
 
 # --------- CONFIGURATION ---------
-CSV_FILE = "registrations.csv"
-WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2?mode=ac_t"
+WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
-# Email config - replace with your credentials
-EMAIL_ADDRESS = "your_email@gmail.com"
-EMAIL_PASSWORD = "your_app_password"  # Use app password if 2FA enabled
+EMAIL_ADDRESS = "m.pavankumar679@gmail.com"
+EMAIL_PASSWORD = "pavankumar123"
+
+# --------- FIREBASE SETUP ---------
+if not firebase_admin._apps:
+    cred = credentials.Certificate("firebase_key.json")  # path to your key
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+registrations_ref = db.collection("registrations")
 
 # --------- FUNCTIONS ---------
 def send_confirmation_email(to_email, name):
@@ -21,18 +28,15 @@ def send_confirmation_email(to_email, name):
     Hi {name},
 
     Thank you for registering for the Stock Market Workshop.
-
     We have received your registration successfully.
 
     Regards,
     Workshop Team
     """
-
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = to_email
     msg['Subject'] = subject
-
     msg.attach(MIMEText(body, 'plain'))
 
     try:
@@ -46,22 +50,15 @@ def send_confirmation_email(to_email, name):
         return False
 
 def save_registration(data: dict):
-    df = pd.DataFrame([data])
-    if os.path.exists(CSV_FILE):
-        df.to_csv(CSV_FILE, mode='a', header=False, index=False)
-    else:
-        df.to_csv(CSV_FILE, mode='w', header=True, index=False)
+    registrations_ref.add(data)
 
 def get_registration_count():
-    if os.path.exists(CSV_FILE):
-        df = pd.read_csv(CSV_FILE)
-        return len(df)
-    return 0
+    docs = registrations_ref.stream()
+    return len(list(docs))
 
 # --------- STREAMLIT UI ---------
 st.title("📈 Stock Market Workshop Registration")
-
-st.markdown("Please fill the form below to register for the workshop.")
+st.markdown("Fill the form below to register for the workshop.")
 
 with st.form(key='registration_form'):
     name = st.text_input("Full Name", max_chars=50)
@@ -90,22 +87,19 @@ if submit:
         if email_sent:
             st.success("Registration successful! A confirmation email has been sent.")
         else:
-            st.warning("Registration saved but failed to send confirmation email.")
+            st.warning("Registered, but failed to send confirmation email.")
 
 st.markdown("---")
 st.markdown(f"### Total Registered Participants: {get_registration_count()}")
 
 st.markdown("### Upload Payment Screenshot")
-uploaded_file = st.file_uploader("Upload your payment screenshot here (PNG/JPG)")
+uploaded_file = st.file_uploader("Upload your payment screenshot (PNG/JPG)")
 
 if uploaded_file is not None:
-    # Save the uploaded file to local 'screenshots' folder (create if not exists)
     if not os.path.exists("screenshots"):
         os.makedirs("screenshots")
     save_path = os.path.join("screenshots", uploaded_file.name)
     with open(save_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     st.success("Payment screenshot uploaded successfully!")
-
-    # Reveal WhatsApp group link
     st.markdown(f"**Join the WhatsApp group here:** [Click to Join]({WHATSAPP_LINK})")
