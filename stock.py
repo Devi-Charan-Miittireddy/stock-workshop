@@ -15,7 +15,7 @@ EMAIL_PASSWORD = "pavankumar123"
 
 # --------- FIREBASE SETUP ---------
 if not firebase_admin._apps:
-    cred = credentials.Certificate("stockmarket.json")  # path to your key
+    cred = credentials.Certificate("stockmarket-ws-be7ae-firebase-adminsdk-fbsvc-714919cf7a.json")  # path to your key
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
