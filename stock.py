@@ -9,17 +9,19 @@ import os
 
 # --------- CONFIGURATION ---------
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
-
 EMAIL_ADDRESS = "m.pavankumar679@gmail.com"
-EMAIL_PASSWORD = "pavankumar123"
+EMAIL_PASSWORD = "pavankumar123"  # 🔒 Consider using env variables or Streamlit secrets
 
 # --------- FIREBASE SETUP ---------
-if not firebase_admin._apps:
-    cred = credentials.Certificate("stockmarket-ws-be7ae-firebase-adminsdk-fbsvc-714919cf7a.json")  # path to your key
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
-registrations_ref = db.collection("registrations")
+try:
+    if not firebase_admin._apps:
+        cred = credentials.Certificate("stockmarket-ws-be7ae-firebase-adminsdk-fbsvc-714919cf7a.json")
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+    registrations_ref = db.collection("registrations")
+except Exception as e:
+    st.error("Failed to initialize Firebase. Please check your credentials.")
+    st.stop()
 
 # --------- FUNCTIONS ---------
 def send_confirmation_email(to_email, name):
@@ -46,15 +48,24 @@ def send_confirmation_email(to_email, name):
             server.send_message(msg)
         return True
     except Exception as e:
-        st.error(f"Error sending email: {e}")
+        st.error(f"Error sending confirmation email: {e}")
         return False
 
 def save_registration(data: dict):
-    registrations_ref.add(data)
+    try:
+        registrations_ref.add(data)
+        return True
+    except Exception as e:
+        st.error(f"Firestore error: {e}")
+        return False
 
 def get_registration_count():
-    docs = registrations_ref.stream()
-    return len(list(docs))
+    try:
+        docs = registrations_ref.stream()
+        return len(list(docs))
+    except Exception as e:
+        st.error(f"Error getting registration count: {e}")
+        return 0
 
 # --------- STREAMLIT UI ---------
 st.title("📈 Stock Market Workshop Registration")
@@ -82,16 +93,21 @@ if submit:
             "Year": year,
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        save_registration(registration_data)
-        email_sent = send_confirmation_email(email, name)
-        if email_sent:
-            st.success("Registration successful! A confirmation email has been sent.")
+        saved = save_registration(registration_data)
+        if saved:
+            email_sent = send_confirmation_email(email, name)
+            if email_sent:
+                st.success("✅ Registration successful! A confirmation email has been sent.")
+            else:
+                st.warning("✅ Registered, but failed to send confirmation email.")
         else:
-            st.warning("Registered, but failed to send confirmation email.")
+            st.error("❌ Failed to save your registration. Please try again later.")
 
+# --------- Registration Count ---------
 st.markdown("---")
 st.markdown(f"### Total Registered Participants: {get_registration_count()}")
 
+# --------- Upload Screenshot ---------
 st.markdown("### Upload Payment Screenshot")
 uploaded_file = st.file_uploader("Upload your payment screenshot (PNG/JPG)")
 
@@ -101,5 +117,5 @@ if uploaded_file is not None:
     save_path = os.path.join("screenshots", uploaded_file.name)
     with open(save_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    st.success("Payment screenshot uploaded successfully!")
+    st.success("✅ Payment screenshot uploaded successfully!")
     st.markdown(f"**Join the WhatsApp group here:** [Click to Join]({WHATSAPP_LINK})")
