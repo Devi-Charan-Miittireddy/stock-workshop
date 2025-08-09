@@ -54,6 +54,12 @@ def get_registration_count():
         return len(df)
     return 0
 
+def delete_all_registrations():
+    if os.path.exists(CSV_FILE):
+        os.remove(CSV_FILE)
+        return True
+    return False
+
 def registration_page():
     st.title("📈 Stock Market Workshop Registration")
     with st.form(key='registration_form'):
@@ -89,9 +95,13 @@ def admin_page():
 
     if password == ADMIN_PASSWORD:
         st.success(f"✅ Total Registered Participants: {get_registration_count()}")
+
+        # Show table if exists
         if os.path.exists(CSV_FILE):
             df = pd.read_csv(CSV_FILE)
             st.dataframe(df)
+
+            # Download option
             csv = df.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Download Registrations CSV",
@@ -99,8 +109,16 @@ def admin_page():
                 file_name="registrations.csv",
                 mime="text/csv"
             )
+
+            # Delete option
+            if st.button("🗑 Delete All Registrations", type="primary"):
+                if delete_all_registrations():
+                    st.success("✅ All registration data has been deleted.")
+                else:
+                    st.info("No registration data found.")
         else:
             st.info("No registrations yet.")
+
     elif password:
         st.error("Incorrect password")
 
