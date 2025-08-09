@@ -63,10 +63,7 @@ def delete_all_registrations():
 # -------- PAGES --------
 def registration_page():
     st.title("📈 Stock Market Workshop Registration")
-    st.markdown(
-        "<span style='color:orange; font-weight:bold;'>⚠ Once you submit the form, your details cannot be changed. Please check carefully before registering.</span>",
-        unsafe_allow_html=True
-    )
+    st.markdown("⚠ **Once you submit the form, your details cannot be changed. Please check carefully before registering.**")
 
     with st.form(key='registration_form'):
         name = st.text_input("Full Name", max_chars=50)
@@ -91,11 +88,9 @@ def registration_page():
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_registration(registration_data)
-        st.success("✅ You are being directed to Payment section...")
-        st.session_state["registered"] = True
-        st.session_state["user_email"] = email
-        st.session_state["user_name"] = name
-        st.rerun()
+        if send_confirmation_email(email, name):
+            st.session_state["registered"] = True
+            st.rerun()
 
 def admin_page():
     st.title("🔑 Admin Panel")
@@ -143,12 +138,6 @@ def payment_page():
         st.image(qr_image, caption="Scan to Pay", use_container_width=True)
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
-
-    # Send email after payment page is shown
-    if "user_email" in st.session_state and "user_name" in st.session_state:
-        send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
-        del st.session_state["user_email"]
-        del st.session_state["user_name"]
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
