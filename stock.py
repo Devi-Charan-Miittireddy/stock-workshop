@@ -63,7 +63,15 @@ def delete_all_registrations():
 # -------- PAGES --------
 def registration_page():
     st.title("📈 Stock Market Workshop Registration")
-    st.markdown("⚠ **Once you submit the form, your details cannot be changed. Please check carefully before registering.**")
+    st.markdown(
+      """
+        <div style="padding:10px; background-color:#ff4d4d; color:white; border-radius:5px; font-weight:bold;">
+            ⚠ Once you submit the form, your details cannot be changed. Please check carefully before registering.
+        </div>
+              """,
+                 unsafe_allow_html=True
+        )
+
 
     with st.form(key='registration_form'):
         name = st.text_input("Full Name", max_chars=50)
