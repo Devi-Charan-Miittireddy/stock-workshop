@@ -60,6 +60,7 @@ def delete_all_registrations():
         return True
     return False
 
+# -------- PAGES --------
 def registration_page():
     st.title("📈 Stock Market Workshop Registration")
     with st.form(key='registration_form'):
@@ -108,18 +109,18 @@ def admin_page():
                 mime="text/csv"
             )
 
-            # Confirmation delete
+            # Password-based deletion confirmation
             st.subheader("🗑 Delete All Registrations")
-            confirm_text = st.text_input("Type DELETE to confirm deletion:", key="delete_confirm")
+            confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
             if st.button("⚠ Confirm Delete", type="primary"):
-                if confirm_text.strip().upper() == "DELETE":
+                if confirm_password == ADMIN_PASSWORD:
                     if delete_all_registrations():
                         st.success("✅ All registration data has been deleted.")
-                        st.rerun()  # Refresh page instantly
+                        st.rerun()
                     else:
                         st.info("No registration data found.")
                 else:
-                    st.error("❌ You must type DELETE to confirm.")
+                    st.error("❌ Incorrect password. Deletion cancelled.")
 
         else:
             st.info("No registrations yet.")
