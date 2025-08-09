@@ -96,12 +96,10 @@ def admin_page():
     if password == ADMIN_PASSWORD:
         st.success(f"✅ Total Registered Participants: {get_registration_count()}")
 
-        # Show table if exists
         if os.path.exists(CSV_FILE):
             df = pd.read_csv(CSV_FILE)
             st.dataframe(df)
 
-            # Download option
             csv = df.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Download Registrations CSV",
@@ -110,12 +108,19 @@ def admin_page():
                 mime="text/csv"
             )
 
-            # Delete option
-            if st.button("🗑 Delete All Registrations", type="primary"):
-                if delete_all_registrations():
-                    st.success("✅ All registration data has been deleted.")
+            # Confirmation delete
+            st.subheader("🗑 Delete All Registrations")
+            confirm_text = st.text_input("Type DELETE to confirm deletion:", key="delete_confirm")
+            if st.button("⚠ Confirm Delete", type="primary"):
+                if confirm_text.strip().upper() == "DELETE":
+                    if delete_all_registrations():
+                        st.success("✅ All registration data has been deleted.")
+                        st.rerun()  # Refresh page instantly
+                    else:
+                        st.info("No registration data found.")
                 else:
-                    st.info("No registration data found.")
+                    st.error("❌ You must type DELETE to confirm.")
+
         else:
             st.info("No registrations yet.")
 
