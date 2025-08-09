@@ -9,8 +9,8 @@ from email.mime.multipart import MIMEMultipart
 # -------- CONFIG --------
 CSV_FILE = "registrations.csv"
 ADMIN_PASSWORD = "admin123"  # Change this to your own admin password
-EMAIL_ADDRESS = "m.pavankumar679@gmail.com"
-EMAIL_PASSWORD = "your_gmail_app_password"  # App password, not normal password
+EMAIL_ADDRESS = "charancherryh1438@gmail.com"
+EMAIL_PASSWORD = "xsab exlq lool uuyk"  # App password, not normal password
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- FUNCTIONS --------
