@@ -122,10 +122,22 @@ elif st.session_state.page == "payment":
     st.write("Please complete your payment to confirm your registration.")
 
     # Example: QR code or payment instructions
-    st.image("payment_qr.png", caption="Scan to Pay", use_container_width=True)
-    st.write("UPI ID: yourupi@bank")
-    st.write("Amount: ₹499")
+   import streamlit as st
+from PIL import Image
 
-    if st.button("Back to Registration"):
-        st.session_state.page = "register"
-        st.rerun()
+def payment_page():
+    st.title("💳 Payment Section")
+    st.markdown("Please complete your payment using the QR code below:")
+
+    # Load and display the QR code image
+    qr_image = Image.open("4929e0c6-2246-4f5a-a56e-e55f987c80ec.jpg")
+    st.image(qr_image, caption="Scan to Pay using PhonePe", use_container_width=True)
+
+    st.markdown("Once payment is completed, please send the screenshot to the admin.")
+
+# Inside your registration submit success block:
+if email_sent:
+    st.success("✅ Registration successful! A confirmation email has been sent.")
+    st.markdown("---")
+    payment_page()
+
