@@ -5,135 +5,161 @@ from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import time
+from PIL import Image
 
-# -------- CONFIGURATION --------
+# -------- CONFIG --------
 CSV_FILE = "registrations.csv"
-ADMIN_PASSWORD = "admin123"  # Change this to your real admin password
-EMAIL_ADDRESS = "your_email@gmail.com"  # Sender email
-EMAIL_PASSWORD = "your_email_password"  # Sender email password
-WHATSAPP_LINK = "https://chat.whatsapp.com/yourgroup"
+ADMIN_PASSWORD = st.secrets["app"]["admin_password"]
+EMAIL_ADDRESS = st.secrets["email"]["address"]
+EMAIL_PASSWORD = st.secrets["email"]["password"]
 
-# -------- INITIAL SETUP --------
-if not os.path.exists(CSV_FILE):
-    df = pd.DataFrame(columns=["Name", "Email", "Phone", "Registered_At", "Payment_Status"])
-    df.to_csv(CSV_FILE, index=False)
+# -------- FUNCTIONS --------
+def send_confirmation_email(to_email, name):
+    subject = "Workshop Registration Confirmation"
+    body = f"""
+    Hi {name},
 
-# -------- EMAIL FUNCTION --------
-def send_email(to_email, name):
-    subject = "Registration Confirmation"
-    body = f"Hello {name},\n\nYour registration and payment have been successfully completed.\n\nWelcome!\n\nRegards,\nTeam"
+    Thank you for registering for the Stock Market Workshop.
+    We have received your registration successfully.
+
+    Regards,
+    Workshop Team
+    """
     msg = MIMEMultipart()
-    msg["From"] = EMAIL_ADDRESS
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
 
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.send_message(msg)
         return True
     except Exception as e:
-        st.error(f"Email sending failed: {e}")
+        st.error(f"Error sending confirmation email: {e}")
         return False
 
-# -------- REGISTRATION PAGE --------
-def registration_page():
-    st.header("Registration Form")
-    st.markdown(
-        "<div style='background-color:orange; padding:10px; border-radius:5px; color:black; font-weight:bold;'>⚠️ Once you submit the form, your details cannot be changed. Please check carefully before submitting.</div>",
-        unsafe_allow_html=True
-    )
-    st.write("")
+def save_registration(data: dict):
+    df = pd.DataFrame([data])
+    if os.path.exists(CSV_FILE):
+        df.to_csv(CSV_FILE, mode='a', header=False, index=False)
+    else:
+        df.to_csv(CSV_FILE, index=False)
 
-    with st.form("registration_form"):
-        name = st.text_input("Full Name")
-        email = st.text_input("Email")
-        phone = st.text_input("Phone Number")
-
-        submitted = st.form_submit_button("Register")
-
-        if submitted:
-            if not name or not email or not phone:
-                st.error("Please fill all fields before submitting.")
-            else:
-                df = pd.read_csv(CSV_FILE)
-                new_data = pd.DataFrame(
-                    [[name, email, phone, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Pending"]],
-                    columns=["Name", "Email", "Phone", "Registered_At", "Payment_Status"]
-                )
-                df = pd.concat([df, new_data], ignore_index=True)
-                df.to_csv(CSV_FILE, index=False)
-
-                st.success("✅ Registration successful!")
-                st.info("⏳ You are being directed to the Payment section...")
-                time.sleep(2)
-                st.session_state.page = "Payment"
-
-# -------- PAYMENT PAGE --------
-def payment_page():
-    st.header("Payment Section")
-    st.write("Please complete your payment using the provided QR code or link below.")
-
-    st.markdown(f"[Join our WhatsApp Group for payment confirmation]({WHATSAPP_LINK})")
-
-    with st.form("payment_form"):
-        email = st.text_input("Enter your registered email to confirm payment")
-        payment_done = st.checkbox("I have completed the payment")
-
-        submitted = st.form_submit_button("Confirm Payment")
-
-        if submitted:
-            if not email:
-                st.error("Please enter your email.")
-            else:
-                df = pd.read_csv(CSV_FILE)
-                if email in df["Email"].values:
-                    if payment_done:
-                        df.loc[df["Email"] == email, "Payment_Status"] = "Paid"
-                        df.to_csv(CSV_FILE, index=False)
-
-                        user_name = df.loc[df["Email"] == email, "Name"].values[0]
-                        if send_email(email, user_name):
-                            st.success("✅ Payment confirmed! Confirmation email sent.")
-                    else:
-                        st.warning("Please tick the checkbox after making payment.")
-                else:
-                    st.error("Email not found in our records.")
-
-# -------- ADMIN PAGE --------
-def admin_page():
-    st.header("Admin Panel")
-    st.subheader("View All Registrations")
-
+def get_registration_count():
     if os.path.exists(CSV_FILE):
         df = pd.read_csv(CSV_FILE)
-        st.dataframe(df)
+        return len(df)
+    return 0
 
-    st.subheader("Erase All Data (Password Protected)")
-    password_input = st.text_input("Enter Admin Password to delete all data", type="password")
-    if st.button("Delete All Data"):
-        if password_input == ADMIN_PASSWORD:
-            df = pd.DataFrame(columns=["Name", "Email", "Phone", "Registered_At", "Payment_Status"])
-            df.to_csv(CSV_FILE, index=False)
-            st.success("✅ All data erased successfully.")
+def delete_all_registrations():
+    if os.path.exists(CSV_FILE):
+        os.remove(CSV_FILE)
+        return True
+    return False
+
+# -------- PAGES --------
+def registration_page():
+    st.title("📈 Stock Market Workshop Registration")
+    st.markdown(
+        "<span style='color:orange; font-weight:bold;'>⚠ Once you submit the form, your details cannot be changed. Please check carefully before registering.</span>",
+        unsafe_allow_html=True
+    )
+
+    with st.form(key='registration_form'):
+        name = st.text_input("Full Name", max_chars=50)
+        email = st.text_input("Email Address")
+        phone = st.text_input("Phone Number")
+        college = st.text_input("College Name")
+        branch = st.text_input("Branch")
+        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
+        submit = st.form_submit_button("Register")
+
+    if submit:
+        if not all([name, email, phone, college, branch, year]):
+            st.error("⚠ Please fill all fields before submitting.")
+            return
+        registration_data = {
+            "Name": name,
+            "Email": email,
+            "Phone": phone,
+            "College": college,
+            "Branch": branch,
+            "Year": year,
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        save_registration(registration_data)
+        st.success("✅ You are being directed to Payment section...")
+        st.session_state["registered"] = True
+        st.session_state["user_email"] = email
+        st.session_state["user_name"] = name
+        st.rerun()
+
+def admin_page():
+    st.title("🔑 Admin Panel")
+    password = st.text_input("Enter Admin Password", type="password")
+
+    if password == ADMIN_PASSWORD:
+        st.success(f"✅ Total Registered Participants: {get_registration_count()}")
+
+        if os.path.exists(CSV_FILE):
+            df = pd.read_csv(CSV_FILE)
+            st.dataframe(df)
+
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Registrations CSV",
+                data=csv,
+                file_name="registrations.csv",
+                mime="text/csv"
+            )
+
+            # Password-based deletion confirmation
+            st.subheader("🗑 Delete All Registrations")
+            confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
+            if st.button("⚠ Confirm Delete", type="primary"):
+                if confirm_password == ADMIN_PASSWORD:
+                    if delete_all_registrations():
+                        st.success("✅ All registration data has been deleted.")
+                        st.rerun()
+                    else:
+                        st.info("No registration data found.")
+                else:
+                    st.error("❌ Incorrect password. Deletion cancelled.")
+
         else:
-            st.error("Incorrect password. Access denied.")
+            st.info("No registrations yet.")
 
-# -------- PAGE NAVIGATION --------
-if "page" not in st.session_state:
-    st.session_state.page = "Registration"
+    elif password:
+        st.error("Incorrect password")
 
-menu = st.sidebar.radio("Navigation", ["Registration", "Payment", "Admin"])
+def payment_page():
+    st.title("💳 Payment Section")
+    st.write("Please scan the QR code below to make your payment:")
+    try:
+        qr_image = Image.open("payment_qr.jpg")
+        st.image(qr_image, caption="Scan to Pay", use_container_width=True)
+    except FileNotFoundError:
+        st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
 
-if menu == "Registration":
-    st.session_state.page = "Registration"
-    registration_page()
-elif menu == "Payment":
-    st.session_state.page = "Payment"
-    payment_page()
+    # Send email after payment page is shown
+    if "user_email" in st.session_state and "user_name" in st.session_state:
+        send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
+        del st.session_state["user_email"]
+        del st.session_state["user_name"]
+
+# -------- APP NAVIGATION --------
+if "registered" not in st.session_state:
+    st.session_state["registered"] = False
+
+menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
+
+if menu == "Register":
+    if st.session_state["registered"]:
+        payment_page()
+    else:
+        registration_page()
 elif menu == "Admin":
     admin_page()
