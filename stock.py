@@ -122,7 +122,7 @@ elif st.session_state.page == "payment":
     st.write("Please complete your payment to confirm your registration.")
 
     # Example: QR code or payment instructions
-   import streamlit as st
+import streamlit as st
 from PIL import Image
 
 def payment_page():
