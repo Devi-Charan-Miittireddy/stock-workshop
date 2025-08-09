@@ -11,7 +11,6 @@ CSV_FILE = "registrations.csv"
 ADMIN_PASSWORD = "admin123"  # Change this to your own admin password
 EMAIL_ADDRESS = "charancherryh1438@gmail.com"
 EMAIL_PASSWORD = "xsab exlq lool uuyk"  # App password, not normal password
-WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- FUNCTIONS --------
 def send_confirmation_email(to_email, name):
@@ -65,12 +64,13 @@ if menu == "Register":
         phone = st.text_input("Phone Number")
         college = st.text_input("College Name")
         branch = st.text_input("Branch")
-        year = st.selectbox("Year", ["1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
+        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
         submit = st.form_submit_button("Register")
 
     if submit:
-        if not (name and email and phone and college and branch and year):
-            st.error("Please fill all fields before submitting.")
+        # Prevent registration if any field is empty
+        if not name or not email or not phone or not college or not branch or not year:
+            st.warning("⚠ Please fill all fields before submitting.")
         else:
             registration_data = {
                 "Name": name,
@@ -87,7 +87,6 @@ if menu == "Register":
                 st.success("✅ Registration successful! A confirmation email has been sent.")
             else:
                 st.warning("✅ Registered, but failed to send confirmation email.")
-            st.markdown(f"**Join the WhatsApp group here:** [Click to Join]({WHATSAPP_LINK})")
 
     st.markdown("---")
     st.markdown(f"### Total Registered Participants: {get_registration_count()}")
