@@ -5,113 +5,150 @@ from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from PIL import Image
 
-# ---------------- CONFIGURATION ----------------
-WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
+# -------- CONFIG --------
 CSV_FILE = "registrations.csv"
-ADMIN_PASSWORD = "admin123"  # Change this to your real admin password
-EMAIL_ADDRESS = "your_email@example.com"  # Your email
-EMAIL_PASSWORD = "your_password"  # Your email password
+ADMIN_PASSWORD = st.secrets["app"]["admin_password"]
+EMAIL_ADDRESS = st.secrets["email"]["address"]
+EMAIL_PASSWORD = st.secrets["email"]["password"]
 
-# ---------------- EMAIL FUNCTION ----------------
-def send_email(to_email, name):
+# -------- FUNCTIONS --------
+def send_confirmation_email(to_email, name):
+    subject = "Workshop Registration Confirmation"
+    body = f"""
+    Hi {name},
+
+    Thank you for registering for the Stock Market Workshop.
+    We have received your registration successfully.
+
+    Regards,
+    Workshop Team
+    """
+    msg = MIMEMultipart()
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
     try:
-        subject = "Workshop Registration Confirmation"
-        body = f"""
-Hello {name},
-
-Thank you for registering for our Stock Market Workshop.
-We will contact you with further details soon.
-
-WhatsApp Group Link: {WHATSAPP_LINK}
-
-Best regards,
-Workshop Team
-"""
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_ADDRESS
-        msg["To"] = to_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
         return True
     except Exception as e:
-        st.error(f"Email sending failed: {e}")
+        st.error(f"Error sending confirmation email: {e}")
         return False
 
-# ---------------- SAVE TO CSV ----------------
-def save_to_csv(data):
+def save_registration(data: dict):
     df = pd.DataFrame([data])
     if os.path.exists(CSV_FILE):
-        df.to_csv(CSV_FILE, mode="a", header=False, index=False)
+        df.to_csv(CSV_FILE, mode='a', header=False, index=False)
     else:
         df.to_csv(CSV_FILE, index=False)
 
-# ---------------- DELETE ALL DATA ----------------
-def delete_all_data(password):
-    if password == ADMIN_PASSWORD:
-        if os.path.exists(CSV_FILE):
-            os.remove(CSV_FILE)
-            st.success("All registration data has been deleted.")
-        else:
-            st.warning("No registration data found.")
-    else:
-        st.error("Incorrect admin password.")
-
-# ---------------- REGISTRATION PAGE ----------------
-def registration_page():
-    st.header("📌 Stock Market Workshop Registration")
-    st.markdown("⚠ **Once you submit the form, your details cannot be changed. Please check carefully before registering.**")
-
-    with st.form("registration_form"):
-        name = st.text_input("Full Name")
-        email = st.text_input("Email Address")
-        phone = st.text_input("Phone Number")
-        submit_button = st.form_submit_button("Register")
-
-    if submit_button:
-        if not name or not email or not phone:
-            st.error("Please fill in all fields.")
-        else:
-            data = {
-                "Name": name,
-                "Email": email,
-                "Phone": phone,
-                "Registration Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            save_to_csv(data)
-
-            if send_email(email, name):
-                st.success("✅ Registration successful! Confirmation email sent.")
-            else:
-                st.warning("Registered, but confirmation email could not be sent.")
-
-            st.info(f"📢 Join our WhatsApp Group: [Click Here]({WHATSAPP_LINK})")
-
-# ---------------- ADMIN PAGE ----------------
-def admin_page():
-    st.header("🔐 Admin Panel")
-
+def get_registration_count():
     if os.path.exists(CSV_FILE):
         df = pd.read_csv(CSV_FILE)
-        st.subheader("📋 All Registrations")
-        st.dataframe(df)
+        return len(df)
+    return 0
+
+def delete_all_registrations():
+    if os.path.exists(CSV_FILE):
+        os.remove(CSV_FILE)
+        return True
+    return False
+
+# -------- PAGES --------
+def registration_page():
+    st.title("📈 Stock Market Workshop Registration")
+    st.markdown("⚠ **Once you submit the form, your details cannot be changed. Please check carefully before registering.**")
+
+    with st.form(key='registration_form'):
+        name = st.text_input("Full Name", max_chars=50)
+        email = st.text_input("Email Address")
+        phone = st.text_input("Phone Number")
+        college = st.text_input("College Name")
+        branch = st.text_input("Branch")
+        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
+        submit = st.form_submit_button("Register")
+
+    if submit:
+        if not all([name, email, phone, college, branch, year]):
+            st.error("⚠ Please fill all fields before submitting.")
+            return
+        registration_data = {
+            "Name": name,
+            "Email": email,
+            "Phone": phone,
+            "College": college,
+            "Branch": branch,
+            "Year": year,
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        save_registration(registration_data)
+        if send_confirmation_email(email, name):
+            st.session_state["registered"] = True
+            st.rerun()
+
+def admin_page():
+    st.title("🔑 Admin Panel")
+    password = st.text_input("Enter Admin Password", type="password")
+
+    if password == ADMIN_PASSWORD:
+        st.success(f"✅ Total Registered Participants: {get_registration_count()}")
+
+        if os.path.exists(CSV_FILE):
+            df = pd.read_csv(CSV_FILE)
+            st.dataframe(df)
+
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Registrations CSV",
+                data=csv,
+                file_name="registrations.csv",
+                mime="text/csv"
+            )
+
+            # Password-based deletion confirmation
+            st.subheader("🗑 Delete All Registrations")
+            confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
+            if st.button("⚠ Confirm Delete", type="primary"):
+                if confirm_password == ADMIN_PASSWORD:
+                    if delete_all_registrations():
+                        st.success("✅ All registration data has been deleted.")
+                        st.rerun()
+                    else:
+                        st.info("No registration data found.")
+                else:
+                    st.error("❌ Incorrect password. Deletion cancelled.")
+
+        else:
+            st.info("No registrations yet.")
+
+    elif password:
+        st.error("Incorrect password")
+
+def payment_page():
+    st.title("💳 Payment Section")
+    st.write("Please scan the QR code below to make your payment:")
+    try:
+        qr_image = Image.open("payment_qr.jpg")
+        st.image(qr_image, caption="Scan to Pay", use_container_width=True)
+    except FileNotFoundError:
+        st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
+
+# -------- APP NAVIGATION --------
+if "registered" not in st.session_state:
+    st.session_state["registered"] = False
+
+menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
+
+if menu == "Register":
+    if st.session_state["registered"]:
+        payment_page()
     else:
-        st.info("No registration data found.")
-
-    st.subheader("❌ Delete All Data")
-    password_input = st.text_input("Enter Admin Password to Delete All Data", type="password")
-    if st.button("Delete Data"):
-        delete_all_data(password_input)
-
-# ---------------- MAIN APP ----------------
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Registration", "Admin"])
-
-if page == "Registration":
-    registration_page()
-elif page == "Admin":
+        registration_page()
+elif menu == "Admin":
     admin_page()
