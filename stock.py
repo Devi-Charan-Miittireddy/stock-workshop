@@ -68,7 +68,6 @@ if menu == "Register":
         submit = st.form_submit_button("Register")
 
     if submit:
-        # Prevent registration if any field is empty
         if not name or not email or not phone or not college or not branch or not year:
             st.warning("⚠ Please fill all fields before submitting.")
         else:
@@ -88,9 +87,6 @@ if menu == "Register":
             else:
                 st.warning("✅ Registered, but failed to send confirmation email.")
 
-    st.markdown("---")
-    st.markdown(f"### Total Registered Participants: {get_registration_count()}")
-
 elif menu == "Admin":
     st.title("🔑 Admin Panel")
     password = st.text_input("Enter Admin Password", type="password")
@@ -99,6 +95,9 @@ elif menu == "Admin":
         if os.path.exists(CSV_FILE):
             df = pd.read_csv(CSV_FILE)
             st.dataframe(df)
+
+            # Show total participants
+            st.markdown(f"### Total Registered Participants: {get_registration_count()}")
 
             # Download button
             csv = df.to_csv(index=False).encode('utf-8')
