@@ -1,32 +1,36 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, firestore
+import pandas as pd
+import os
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --------- CONFIGURATION ---------
+# ---------- CONFIG ----------
+CSV_FILE = "registrations.csv"
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
-# Load secrets for email (set these in Streamlit Cloud -> Settings -> Secrets)
+# Email credentials (set in Streamlit Secrets)
 EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
 
-# --------- FIREBASE SETUP ---------
-try:
-    if not firebase_admin._apps:
-        firebase_key = st.secrets["firebase"]  # Load from secrets
-        cred = credentials.Certificate(firebase_key)
-        firebase_admin.initialize_app(cred)
-    db = firestore.client()
-    registrations_ref = db.collection("registrations")
-except Exception as e:
-    st.error(f"Failed to initialize Firebase: {e}")
-    st.stop()
+# ---------- FUNCTIONS ----------
+def save_registration(data: dict):
+    """Save registration data to CSV file."""
+    df = pd.DataFrame([data])
+    if os.path.exists(CSV_FILE):
+        df.to_csv(CSV_FILE, mode='a', header=False, index=False)
+    else:
+        df.to_csv(CSV_FILE, index=False)
 
-# --------- FUNCTIONS ---------
+def get_registration_count():
+    """Return total number of registrations."""
+    if os.path.exists(CSV_FILE):
+        return len(pd.read_csv(CSV_FILE))
+    return 0
+
 def send_confirmation_email(to_email, name):
+    """Send confirmation email to participant."""
     subject = "Workshop Registration Confirmation"
     body = f"""
     Hi {name},
@@ -37,6 +41,7 @@ def send_confirmation_email(to_email, name):
     Regards,
     Workshop Team
     """
+
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = to_email
@@ -53,23 +58,7 @@ def send_confirmation_email(to_email, name):
         st.error(f"Error sending confirmation email: {e}")
         return False
 
-def save_registration(data: dict):
-    try:
-        registrations_ref.add(data)
-        return True
-    except Exception as e:
-        st.error(f"Firestore error: {e}")
-        return False
-
-def get_registration_count():
-    try:
-        docs = registrations_ref.stream()
-        return len(list(docs))
-    except Exception as e:
-        st.error(f"Error getting registration count: {e}")
-        return 0
-
-# --------- STREAMLIT UI ---------
+# ---------- STREAMLIT UI ----------
 st.title("📈 Stock Market Workshop Registration")
 st.markdown("Fill the form below to register for the workshop.")
 
@@ -95,17 +84,19 @@ if submit:
             "Year": year,
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        saved = save_registration(registration_data)
-        if saved:
-            email_sent = send_confirmation_email(email, name)
-            if email_sent:
-                st.success("✅ Registration successful! A confirmation email has been sent.")
-                st.markdown(f"**Join the WhatsApp group here:** [Click to Join]({WHATSAPP_LINK})")
-            else:
-                st.warning("✅ Registered, but failed to send confirmation email.")
+        save_registration(registration_data)
+        email_sent = send_confirmation_email(email, name)
+        if email_sent:
+            st.success("✅ Registration successful! A confirmation email has been sent.")
         else:
-            st.error("❌ Failed to save your registration. Please try again later.")
+            st.warning("✅ Registered, but failed to send confirmation email.")
 
-# --------- Registration Count ---------
 st.markdown("---")
 st.markdown(f"### Total Registered Participants: {get_registration_count()}")
+
+# Show data preview for admin
+if st.checkbox("Show Registration Data (Admin View)"):
+    if os.path.exists(CSV_FILE):
+        st.dataframe(pd.read_csv(CSV_FILE))
+    else:
+        st.info("No registrations yet.")
