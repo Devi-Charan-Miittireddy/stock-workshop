@@ -10,7 +10,7 @@ from email.mime.multipart import MIMEMultipart
 CSV_FILE = "registrations.csv"
 ADMIN_PASSWORD = "admin123"  # Change this to your own admin password
 EMAIL_ADDRESS = "charancherryh1438@gmail.com"
-EMAIL_PASSWORD = "xsab exlq lool uuyk"  # App password, not normal password
+EMAIL_PASSWORD = "xsab exlq lool uuyk"  # Gmail App Password
 
 # -------- FUNCTIONS --------
 def send_confirmation_email(to_email, name):
@@ -53,61 +53,79 @@ def get_registration_count():
         return len(df)
     return 0
 
-# -------- APP MODE --------
-menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
+# -------- STATE --------
+if "page" not in st.session_state:
+    st.session_state.page = "register"
 
-if menu == "Register":
-    st.title("📈 Stock Market Workshop Registration")
-    with st.form(key='registration_form'):
-        name = st.text_input("Full Name", max_chars=50)
-        email = st.text_input("Email Address")
-        phone = st.text_input("Phone Number")
-        college = st.text_input("College Name")
-        branch = st.text_input("Branch")
-        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
-        submit = st.form_submit_button("Register")
+# -------- APP LOGIC --------
+if st.session_state.page == "register":
+    menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
 
-    if submit:
-        if not name or not email or not phone or not college or not branch or not year:
-            st.warning("⚠ Please fill all fields before submitting.")
-        else:
-            registration_data = {
-                "Name": name,
-                "Email": email,
-                "Phone": phone,
-                "College": college,
-                "Branch": branch,
-                "Year": year,
-                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            save_registration(registration_data)
-            email_sent = send_confirmation_email(email, name)
-            if email_sent:
-                st.success("✅ Registration successful! A confirmation email has been sent.")
+    if menu == "Register":
+        st.title("📈 Stock Market Workshop Registration")
+        with st.form(key='registration_form'):
+            name = st.text_input("Full Name", max_chars=50)
+            email = st.text_input("Email Address")
+            phone = st.text_input("Phone Number")
+            college = st.text_input("College Name")
+            branch = st.text_input("Branch")
+            year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
+            submit = st.form_submit_button("Register")
+
+        if submit:
+            if not name or not email or not phone or not college or not branch or not year:
+                st.warning("⚠ Please fill all fields before submitting.")
             else:
-                st.warning("✅ Registered, but failed to send confirmation email.")
+                registration_data = {
+                    "Name": name,
+                    "Email": email,
+                    "Phone": phone,
+                    "College": college,
+                    "Branch": branch,
+                    "Year": year,
+                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                save_registration(registration_data)
+                email_sent = send_confirmation_email(email, name)
+                if email_sent:
+                    st.success("✅ Registration successful! A confirmation email has been sent.")
+                    st.session_state.page = "payment"  # Go to payment page
+                    st.rerun()
+                else:
+                    st.warning("✅ Registered, but failed to send confirmation email.")
 
-elif menu == "Admin":
-    st.title("🔑 Admin Panel")
-    password = st.text_input("Enter Admin Password", type="password")
+    elif menu == "Admin":
+        st.title("🔑 Admin Panel")
+        password = st.text_input("Enter Admin Password", type="password")
 
-    if password == ADMIN_PASSWORD:
-        if os.path.exists(CSV_FILE):
-            df = pd.read_csv(CSV_FILE)
-            st.dataframe(df)
+        if password == ADMIN_PASSWORD:
+            if os.path.exists(CSV_FILE):
+                df = pd.read_csv(CSV_FILE)
+                st.dataframe(df)
 
-            # Show total participants
-            st.markdown(f"### Total Registered Participants: {get_registration_count()}")
+                st.markdown(f"### Total Registered Participants: {get_registration_count()}")
 
-            # Download button
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download Registrations CSV",
-                data=csv,
-                file_name="registrations.csv",
-                mime="text/csv"
-            )
-        else:
-            st.info("No registrations yet.")
-    elif password:
-        st.error("Incorrect password")
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Registrations CSV",
+                    data=csv,
+                    file_name="registrations.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("No registrations yet.")
+        elif password:
+            st.error("Incorrect password")
+
+elif st.session_state.page == "payment":
+    st.title("💳 Payment Section")
+    st.write("Please complete your payment to confirm your registration.")
+
+    # Example: QR code or payment instructions
+    st.image("payment_qr.png", caption="Scan to Pay", use_container_width=True)
+    st.write("UPI ID: yourupi@bank")
+    st.write("Amount: ₹499")
+
+    if st.button("Back to Registration"):
+        st.session_state.page = "register"
+        st.rerun()
