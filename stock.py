@@ -76,16 +76,7 @@ def registration_page():
         name = st.text_input("Full Name", max_chars=50)
         email = st.text_input("Email Address")
         phone = st.text_input("Phone Number")
-
-        # College selection with "Other" option
-        college_option = st.selectbox("College", ["", "ANITS", "Other"])
-        if college_option == "Other":
-            college = st.text_input("Enter College Name")
-        elif college_option == "ANITS":
-            college = "ANITS"
-        else:
-            college = ""
-
+        college = st.text_input("College Name")
         branch = st.text_input("Branch")
         year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
         submit = st.form_submit_button("Register")
