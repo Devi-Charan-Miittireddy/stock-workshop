@@ -101,7 +101,6 @@ def registration_page():
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
         st.session_state["payment_confirmed"] = False
-        st.session_state["show_proceed"] = False
         st.rerun()
 
 def admin_page():
@@ -150,15 +149,15 @@ def payment_page():
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
 
-    transaction_id = st.text_input("Enter transaction Id")
+    transaction_id = st.text_input("Enter UPI transaction Id (12 digits only)")
 
     if not st.session_state.get("payment_confirmed", False):
         uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
         if uploaded_file is not None:
             st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
             if st.button("Confirm to Upload"):
-                if transaction_id.strip() == "":
-                    st.error("⚠ Please enter the transaction Id before confirming.")
+                if len(transaction_id) != 12 or not transaction_id.isdigit():
+                    st.error("⚠ Please enter a valid 12-digit numeric UPI transaction Id before confirming.")
                 else:
                     st.session_state["payment_confirmed"] = True
                     st.success("✅ Payment confirmed! Thank you for registering.")
@@ -173,22 +172,15 @@ def payment_page():
                         del st.session_state["user_email"]
                         del st.session_state["user_name"]
 
-                    st.session_state["show_proceed"] = True
     else:
         st.success("✅ Payment has been confirmed. Thank you!")
-
-    if st.session_state.get("show_proceed", False):
-        if st.button("Proceed"):
-            st.success("🎉 You have successfully completed the registration and payment process!")
-            # Optionally reset or navigate away or show other content here
+        st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
     st.session_state["registered"] = False
 if "payment_confirmed" not in st.session_state:
     st.session_state["payment_confirmed"] = False
-if "show_proceed" not in st.session_state:
-    st.session_state["show_proceed"] = False
 
 menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
 
