@@ -13,7 +13,6 @@ CSV_FILE = "registrations.csv"
 ADMIN_PASSWORD = st.secrets["app"]["admin_password"]
 EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
-WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- FUNCTIONS --------
 def send_confirmation_email(to_email, name):
@@ -63,44 +62,46 @@ def delete_all_registrations():
     return False
 
 # -------- PAGES --------
-def payment_page():
-    st.title("💳 Payment Section")
-    st.write("Please scan the QR code below to make your payment:")
+def registration_page():
+    st.title("📈 Stock Market Workshop Registration")
+    st.markdown(
+        "<div style='background-color:#ffeeba; padding:10px; border-radius:5px; color:#856404; font-weight:bold;'>"
+        "⚠ Once you submit the form, your details cannot be changed. Please check carefully before registering."
+        "</div>",
+        unsafe_allow_html=True
+    )
 
-    try:
-        qr_image = Image.open("payment_qr.jpg")
-        st.image(qr_image, caption="Scan to Pay", use_container_width=False, width=300)
-    except FileNotFoundError:
-        st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
+    with st.form(key='registration_form'):
+        name = st.text_input("Full Name", max_chars=50)
+        email = st.text_input("Email Address")
+        phone = st.text_input("Phone Number")
+        college = st.text_input("College Name")
+        branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
+        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year"])
+        submit = st.form_submit_button("Register")
 
-    transaction_id = st.text_input("Enter UPI Transaction Id (12 digits only)", max_chars=12)
-
-    if not st.session_state.get("payment_confirmed", False):
-        uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
-        if uploaded_file is not None:
-            st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
-            if st.button("Proceed"):
-                if not (transaction_id.isdigit() and len(transaction_id) == 12):
-                    st.error("⚠ Please enter a valid 12-digit numeric UPI Transaction Id before proceeding.")
-                else:
-                    if "user_email" in st.session_state and "user_name" in st.session_state:
-                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
-                        if sent:
-                            st.success("✅ Registration successful and details have been sent to your mail")
-                        else:
-                            st.error("❌ Failed to send registration email.")
-
-                        del st.session_state["user_email"]
-                        del st.session_state["user_name"]
-
-                    st.session_state["payment_confirmed"] = True
-                    st.session_state["show_proceed"] = True
-    else:
-        st.info("You have already completed payment and registration.")
-
-    if st.session_state.get("show_proceed", False):
-        st.success("🎉 Process completed!")
-
+    if submit:
+        if not all([name, email, phone, college, branch, year]):
+            st.error("⚠ Please fill all fields before submitting.")
+            return
+        registration_data = {
+            "Name": name,
+            "Email": email,
+            "Phone": phone,
+            "College": college,
+            "Branch": branch,
+            "Year": year,
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        save_registration(registration_data)
+        st.success("✅ Registration successful... You are being directed to payment section")
+        time.sleep(3)  # wait 3 seconds before redirecting
+        st.session_state["registered"] = True
+        st.session_state["user_email"] = email
+        st.session_state["user_name"] = name
+        st.session_state["payment_confirmed"] = False
+        st.session_state["show_proceed"] = False
+        st.rerun()
 
 def admin_page():
     st.title("🔑 Admin Panel")
@@ -154,30 +155,24 @@ def payment_page():
         uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
         if uploaded_file is not None:
             st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
-            if st.button("Confirm to Upload"):
+            if st.button("Proceed"):
                 if not (transaction_id.isdigit() and len(transaction_id) == 12):
-                    st.error("⚠ Please enter a valid 12-digit numeric UPI Transaction Id before confirming.")
+                    st.error("⚠ Please enter a valid 12-digit numeric UPI Transaction Id before proceeding.")
                 else:
-                    st.session_state["payment_confirmed"] = True
-                    st.success("✅ Payment confirmed! Thank you for registering.")
-
                     if "user_email" in st.session_state and "user_name" in st.session_state:
                         sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
                         if sent:
-                            st.success("📧 Registration confirmation email sent successfully!")
+                            st.success("✅ Registration successful and details have been sent to your mail")
                         else:
                             st.error("❌ Failed to send registration email.")
 
                         del st.session_state["user_email"]
                         del st.session_state["user_name"]
 
+                    st.session_state["payment_confirmed"] = True
                     st.session_state["show_proceed"] = True
     else:
-        st.success("✅ Payment has been confirmed. Thank you!")
-
-    if st.session_state.get("show_proceed", False):
-        if st.button("Proceed"):
-            st.success("🎉 You have successfully completed the registration and payment process!")
+        st.info("You have already completed payment and registration.")
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
