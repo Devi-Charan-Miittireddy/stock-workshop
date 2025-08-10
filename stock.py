@@ -77,9 +77,9 @@ def registration_page():
         email = st.text_input("Email Address")
         phone = st.text_input("Phone Number")
 
-        # College selection with manual input option
-        college_option = st.selectbox("College", ["", "ANITS", "Type manually"])
-        if college_option == "Type manually":
+        # College selection with "Other" option
+        college_option = st.selectbox("College", ["", "ANITS", "Other"])
+        if college_option == "Other":
             college = st.text_input("Enter College Name")
         elif college_option == "ANITS":
             college = "ANITS"
