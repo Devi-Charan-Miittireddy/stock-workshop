@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import time
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -94,10 +95,11 @@ def registration_page():
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_registration(registration_data)
+        st.success("✅ Registration successful... You are being directed to payment section")
+        time.sleep(3)  # wait for 3 seconds before moving to payment
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
-        st.session_state["success_message"] = "✅ Registration successful... You are being directed to payment section"
         st.rerun()
 
 def admin_page():
@@ -140,8 +142,6 @@ def admin_page():
 
 def payment_page():
     st.title("💳 Payment Section")
-    if "success_message" in st.session_state:
-        st.success(st.session_state["success_message"])
     st.write("Please scan the QR code below to make your payment:")
 
     try:
