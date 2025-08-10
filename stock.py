@@ -19,7 +19,7 @@ WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- FUNCTIONS --------
 def generate_registration_id():
-    """Generate a random Registration ID"""
+    """Generate a unique 8-character registration ID."""
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 def send_confirmation_email(to_email, name, registration_id):
@@ -30,7 +30,7 @@ Hi {name},
 Thank you for registering for the Stock Market Workshop.
 We have received your registration successfully.
 
-Your Registration ID: {registration_id}
+Your Registration ID is: {registration_id}
 
 Please keep this ID safe for future reference.
 
@@ -54,21 +54,28 @@ Workshop Team
         return False
 
 def save_registration(data: dict):
-    # Ensure RegistrationID is first column
     columns_order = ["RegistrationID", "Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"]
     if "RegistrationID" not in data:
         data["RegistrationID"] = ""
-    df = pd.DataFrame([data])[columns_order]
+    df = pd.DataFrame([data], columns=columns_order)
 
     if os.path.exists(CSV_FILE):
-        df.to_csv(CSV_FILE, mode='a', header=False, index=False)
+        existing_df = pd.read_csv(CSV_FILE)
+        if "RegistrationID" not in existing_df.columns:
+            existing_df["RegistrationID"] = ""
+        existing_df = existing_df[columns_order]
+        df = pd.concat([existing_df, df], ignore_index=True)
+        df.to_csv(CSV_FILE, index=False)
     else:
         df.to_csv(CSV_FILE, index=False)
 
 def get_registration_count():
     if os.path.exists(CSV_FILE):
-        df = pd.read_csv(CSV_FILE)
-        return len(df)
+        try:
+            df = pd.read_csv(CSV_FILE)
+            return len(df)
+        except Exception:
+            return 0
     return 0
 
 def delete_all_registrations():
@@ -103,10 +110,13 @@ def registration_page():
 
         # ✅ Duplicate email prevention
         if os.path.exists(CSV_FILE):
-            df = pd.read_csv(CSV_FILE)
-            if email.strip().lower() in df['Email'].str.lower().values:
-                st.error("⚠ This email is already registered. Please use a different email.")
-                return
+            try:
+                df = pd.read_csv(CSV_FILE)
+                if "Email" in df.columns and email.strip().lower() in df['Email'].str.lower().values:
+                    st.error("⚠ This email is already registered. Please use a different email.")
+                    return
+            except Exception:
+                pass
 
         registration_data = {
             "Name": name,
@@ -124,6 +134,7 @@ def registration_page():
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
         st.session_state["payment_confirmed"] = False
+        st.session_state["show_proceed"] = False
         st.session_state["thank_you"] = False
         st.rerun()
 
@@ -135,16 +146,21 @@ def admin_page():
         st.success(f"✅ Total Registered Participants: {get_registration_count()}")
 
         if os.path.exists(CSV_FILE):
-            df = pd.read_csv(CSV_FILE)
-            st.dataframe(df)
+            try:
+                df = pd.read_csv(CSV_FILE)
+                if "RegistrationID" not in df.columns:
+                    df["RegistrationID"] = ""
+                st.dataframe(df)
 
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download Registrations CSV",
-                data=csv,
-                file_name="registrations.csv",
-                mime="text/csv"
-            )
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Registrations CSV",
+                    data=csv,
+                    file_name="registrations.csv",
+                    mime="text/csv"
+                )
+            except Exception as e:
+                st.error(f"Error reading CSV: {e}")
 
             st.subheader("🗑 Delete All Registrations")
             confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
@@ -185,12 +201,16 @@ def payment_page():
                     if "user_email" in st.session_state and "user_name" in st.session_state:
                         registration_id = generate_registration_id()
 
-                        # Update CSV with Registration ID
                         if os.path.exists(CSV_FILE):
-                            df = pd.read_csv(CSV_FILE)
-                            df.loc[df['Email'] == st.session_state["user_email"], 'RegistrationID'] = registration_id
-                            df = df[["RegistrationID", "Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"]]
-                            df.to_csv(CSV_FILE, index=False)
+                            try:
+                                df = pd.read_csv(CSV_FILE)
+                                if "RegistrationID" not in df.columns:
+                                    df["RegistrationID"] = ""
+                                df.loc[df['Email'].str.lower() == st.session_state["user_email"].lower(), 'RegistrationID'] = registration_id
+                                df = df[["RegistrationID", "Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"]]
+                                df.to_csv(CSV_FILE, index=False)
+                            except Exception:
+                                pass
 
                         sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"], registration_id)
                         if sent:
@@ -234,6 +254,8 @@ if "registered" not in st.session_state:
     st.session_state["registered"] = False
 if "payment_confirmed" not in st.session_state:
     st.session_state["payment_confirmed"] = False
+if "show_proceed" not in st.session_state:
+    st.session_state["show_proceed"] = False
 if "thank_you" not in st.session_state:
     st.session_state["thank_you"] = False
 
