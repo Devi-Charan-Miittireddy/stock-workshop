@@ -78,7 +78,7 @@ def registration_page():
         phone = st.text_input("Phone Number")
         college = st.text_input("College Name")
         branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
-        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
+        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year"])
         submit = st.form_submit_button("Register")
 
     if submit:
@@ -101,6 +101,7 @@ def registration_page():
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
         st.session_state["payment_confirmed"] = False
+        st.session_state["show_proceed"] = False
         st.rerun()
 
 def admin_page():
@@ -149,7 +150,6 @@ def payment_page():
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
 
-    # New text input for transaction id
     transaction_id = st.text_input("Enter transaction Id")
 
     if not st.session_state.get("payment_confirmed", False):
@@ -172,15 +172,23 @@ def payment_page():
 
                         del st.session_state["user_email"]
                         del st.session_state["user_name"]
+
+                    st.session_state["show_proceed"] = True
     else:
         st.success("✅ Payment has been confirmed. Thank you!")
-        st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
+
+    if st.session_state.get("show_proceed", False):
+        if st.button("Proceed"):
+            st.success("🎉 You have successfully completed the registration and payment process!")
+            # Optionally reset or navigate away or show other content here
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
     st.session_state["registered"] = False
 if "payment_confirmed" not in st.session_state:
     st.session_state["payment_confirmed"] = False
+if "show_proceed" not in st.session_state:
+    st.session_state["show_proceed"] = False
 
 menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
 
