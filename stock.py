@@ -147,16 +147,19 @@ def payment_page():
     try:
         qr_image = Image.open("payment_qr.jpg")
         st.image(qr_image, caption="Scan to Pay", use_container_width=True)
+        
+        # Show WhatsApp link only after QR code image successfully loads
+        st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
+
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
-
-    st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
 
     # Send email after payment page is shown
     if "user_email" in st.session_state and "user_name" in st.session_state:
         send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
         del st.session_state["user_email"]
         del st.session_state["user_name"]
+
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
