@@ -79,7 +79,7 @@ def registration_page():
         college = st.text_input("College Name")
         branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
         year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year"])
-        submit = st.form_submit_button("Register")
+        submit = st.form_submit_button("Submit")  # 🔹 Changed from Register to Submit
 
     if submit:
         if not all([name, email, phone, college, branch, year]):
@@ -103,7 +103,7 @@ def registration_page():
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_registration(registration_data)
-        st.success("✅ Registration successful... You are being directed to payment section")
+        st.success("✅ Submission successful... You are being directed to payment section")  # 🔹 Changed message
         time.sleep(3)  # wait 3 seconds before redirecting
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
