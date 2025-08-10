@@ -85,6 +85,7 @@ def registration_page():
         if not all([name, email, phone, college, branch, year]):
             st.error("⚠ Please fill all fields before submitting.")
             return
+        
         registration_data = {
             "Name": name,
             "Email": email,
@@ -95,14 +96,25 @@ def registration_page():
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_registration(registration_data)
-        st.success("✅ Registration successful... You are being directed to payment section")
-        time.sleep(3)  # wait 3 seconds before redirecting
+
+        # Instead of sleep, set a session flag to show success message
+        st.session_state["registration_success"] = True
+
+        # Set session state before rerun
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
         st.session_state["payment_confirmed"] = False
         st.session_state["confirmation_page"] = False
+
+        # Rerun immediately after setting session states
         st.experimental_rerun()
+
+    # Show the success message after rerun (if flag is set)
+    if st.session_state.get("registration_success", False):
+        st.success("✅ Registration successful... You are being directed to payment section")
+        # Remove the flag so message disappears on next rerun
+        del st.session_state["registration_success"]
 
 def admin_page():
     st.title("🔑 Admin Panel")
