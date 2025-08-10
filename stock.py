@@ -96,7 +96,7 @@ def registration_page():
         }
         save_registration(registration_data)
         st.success("✅ Registration successful... You are being directed to payment section")
-        time.sleep(3)  # wait for 3 seconds before moving to payment
+        time.sleep(2)  # wait for 3 seconds before moving to payment
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
