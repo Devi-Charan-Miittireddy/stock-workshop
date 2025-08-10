@@ -4,6 +4,7 @@ import os
 import time
 import random
 import string
+import base64
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -16,6 +17,29 @@ ADMIN_PASSWORD = st.secrets["app"]["admin_password"]
 EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
+
+# -------- BACKGROUND FUNCTION --------
+def set_background(image_file):
+    """Set a background image for the app."""
+    with open(image_file, "rb") as f:
+        data = f.read()
+    encoded = base64.b64encode(data).decode()
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("data:image/png;base64,{encoded}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Call background before rendering
+set_background("A_seamless_background_pattern_features_financial_a.png")
 
 # -------- FUNCTIONS --------
 def generate_registration_id():
