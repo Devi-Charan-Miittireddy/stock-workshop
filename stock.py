@@ -154,6 +154,7 @@ def payment_page():
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
 
+    # Upload screenshot section appears immediately after QR
     if "payment_confirmed" not in st.session_state:
         uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
         if uploaded_file is not None:
@@ -176,6 +177,7 @@ def payment_page():
     else:
         st.success("✅ Payment has been confirmed. Thank you!")
         st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
+
 
 
 
