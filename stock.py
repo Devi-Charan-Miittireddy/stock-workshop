@@ -19,14 +19,14 @@ WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 def send_confirmation_email(to_email, name):
     subject = "Workshop Registration Confirmation"
     body = f"""
-    Hi {name},
+Hi {name},
 
-    Thank you for registering for the Stock Market Workshop.
-    We have received your registration successfully.
+Thank you for registering for the Stock Market Workshop.
+We have received your registration successfully.
 
-    Regards,
-    Workshop Team
-    """
+Regards,
+Workshop Team
+"""
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = to_email
@@ -64,9 +64,6 @@ def delete_all_registrations():
 
 # -------- PAGES --------
 def registration_page():
-    # Reset payment confirmation on new registration page load
-    st.session_state["payment_confirmed"] = False
-
     st.title("📈 Stock Market Workshop Registration")
     st.markdown(
         "<div style='background-color:#ffeeba; padding:10px; border-radius:5px; color:#856404; font-weight:bold;'>"
@@ -99,7 +96,7 @@ def registration_page():
         }
         save_registration(registration_data)
         st.success("✅ Registration successful... You are being directed to payment section")
-        time.sleep(3)  # wait 3 seconds before moving to payment
+        time.sleep(3)  # wait 3 seconds before redirecting
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
@@ -125,7 +122,6 @@ def admin_page():
                 mime="text/csv"
             )
 
-            # Password-based deletion confirmation
             st.subheader("🗑 Delete All Registrations")
             confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
             if st.button("⚠ Confirm Delete", type="primary"):
@@ -140,7 +136,6 @@ def admin_page():
 
         else:
             st.info("No registrations yet.")
-
     elif password:
         st.error("Incorrect password")
 
@@ -150,12 +145,11 @@ def payment_page():
 
     try:
         qr_image = Image.open("payment_qr.jpg")
-        st.image(qr_image, caption="Scan to Pay", use_container_width=True, width=300)
+        st.image(qr_image, caption="Scan to Pay", use_container_width=False, width=300)
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
 
-    # Upload screenshot section appears immediately after QR
-    if "payment_confirmed" not in st.session_state:
+    if not st.session_state.get("payment_confirmed", False):
         uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
         if uploaded_file is not None:
             st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
@@ -163,7 +157,6 @@ def payment_page():
                 st.session_state["payment_confirmed"] = True
                 st.success("✅ Payment confirmed! Thank you for registering.")
 
-                # Send registration confirmation email here
                 if "user_email" in st.session_state and "user_name" in st.session_state:
                     sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
                     if sent:
@@ -173,17 +166,15 @@ def payment_page():
 
                     del st.session_state["user_email"]
                     del st.session_state["user_name"]
-
     else:
         st.success("✅ Payment has been confirmed. Thank you!")
         st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
 
-
-
-
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
     st.session_state["registered"] = False
+if "payment_confirmed" not in st.session_state:
+    st.session_state["payment_confirmed"] = False
 
 menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
 
