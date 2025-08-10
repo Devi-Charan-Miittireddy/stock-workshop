@@ -244,7 +244,8 @@ if "show_proceed" not in st.session_state:
 if "thank_you" not in st.session_state:
     st.session_state["thank_you"] = False
 
-menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
+# ✅ Replaced selectbox with radio (bullets)
+menu = st.sidebar.radio("Select Mode", ["Register", "Admin"])
 
 if menu == "Register":
     if st.session_state["thank_you"]:
