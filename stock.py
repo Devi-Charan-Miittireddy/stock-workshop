@@ -149,23 +149,29 @@ def payment_page():
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
 
+    # New text input for transaction id
+    transaction_id = st.text_input("Enter transaction Id")
+
     if not st.session_state.get("payment_confirmed", False):
         uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
         if uploaded_file is not None:
             st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
             if st.button("Confirm to Upload"):
-                st.session_state["payment_confirmed"] = True
-                st.success("✅ Payment confirmed! Thank you for registering.")
+                if transaction_id.strip() == "":
+                    st.error("⚠ Please enter the transaction Id before confirming.")
+                else:
+                    st.session_state["payment_confirmed"] = True
+                    st.success("✅ Payment confirmed! Thank you for registering.")
 
-                if "user_email" in st.session_state and "user_name" in st.session_state:
-                    sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
-                    if sent:
-                        st.success("📧 Registration confirmation email sent successfully!")
-                    else:
-                        st.error("❌ Failed to send registration email.")
+                    if "user_email" in st.session_state and "user_name" in st.session_state:
+                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
+                        if sent:
+                            st.success("📧 Registration confirmation email sent successfully!")
+                        else:
+                            st.error("❌ Failed to send registration email.")
 
-                    del st.session_state["user_email"]
-                    del st.session_state["user_name"]
+                        del st.session_state["user_email"]
+                        del st.session_state["user_name"]
     else:
         st.success("✅ Payment has been confirmed. Thank you!")
         st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
