@@ -64,6 +64,9 @@ def delete_all_registrations():
 
 # -------- PAGES --------
 def registration_page():
+    # Reset payment confirmation on new registration page load
+    st.session_state["payment_confirmed"] = False
+
     st.title("📈 Stock Market Workshop Registration")
     st.markdown(
         "<div style='background-color:#ffeeba; padding:10px; border-radius:5px; color:#856404; font-weight:bold;'>"
@@ -78,7 +81,7 @@ def registration_page():
         phone = st.text_input("Phone Number")
         college = st.text_input("College Name")
         branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
-        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year"])
+        year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
         submit = st.form_submit_button("Register")
 
     if submit:
@@ -96,10 +99,11 @@ def registration_page():
         }
         save_registration(registration_data)
         st.success("✅ Registration successful... You are being directed to payment section")
-        time.sleep(3)  # wait for 3 seconds before moving to payment
+        time.sleep(3)  # wait 3 seconds before moving to payment
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
+        st.session_state["payment_confirmed"] = False
         st.rerun()
 
 def admin_page():
@@ -146,19 +150,17 @@ def payment_page():
 
     try:
         qr_image = Image.open("payment_qr.jpg")
-        st.image(qr_image, caption="Scan to Pay", use_container_width=True)
+        # Reduced size by setting width (e.g. 300 pixels)
+        st.image(qr_image, caption="Scan to Pay", width=300)
     except FileNotFoundError:
         st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
         return
 
-    # Only show file uploader after QR code is shown successfully
     uploaded_file = st.file_uploader("Upload your payment screenshot here:", type=["png", "jpg", "jpeg"])
 
     if uploaded_file is not None:
-        # Show preview of uploaded image
         st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
         if st.button("Confirm Payment"):
-            # Mark payment as done in session state
             st.session_state["payment_confirmed"] = True
             st.success("✅ Payment confirmed! Thank you for registering.")
 
@@ -170,7 +172,6 @@ def payment_page():
 
     if "payment_confirmed" in st.session_state and st.session_state["payment_confirmed"]:
         st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
-
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
