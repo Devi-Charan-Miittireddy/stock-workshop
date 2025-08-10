@@ -190,7 +190,22 @@ def thank_you_page():
         unsafe_allow_html=True
     )
     st.markdown(
-        "<h3 style='text-align:center;'>We appreciate your registration.</h3>",
+        "<h3 style='text-align:center;'>Registration Successful... Details have been sent to your mail.</h3>",
+        unsafe_allow_html=True
+    )
+
+    # WhatsApp group button
+    st.markdown(
+        f"""
+        <div style="text-align:center; margin-top:30px;">
+            <a href="{WHATSAPP_LINK}" target="_blank" 
+               style="background-color:#25D366; color:white; padding:15px 30px; 
+                      text-decoration:none; font-size:20px; border-radius:8px; 
+                      display:inline-block;">
+                📲 Join WhatsApp Group
+            </a>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
