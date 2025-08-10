@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 import time
-import random
-import string
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -18,22 +16,13 @@ EMAIL_PASSWORD = st.secrets["email"]["password"]
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- FUNCTIONS --------
-def generate_registration_id():
-    prefix = "REG"
-    suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"{prefix}-{suffix}"
-
-def send_confirmation_email(to_email, name, registration_id):
+def send_confirmation_email(to_email, name):
     subject = "Workshop Registration Confirmation"
     body = f"""
 Hi {name},
 
 Thank you for registering for the Stock Market Workshop.
 We have received your registration successfully.
-
-Your Registration ID: {registration_id}
-
-Please keep this Registration ID safe, as it will be required for the event.
 
 Regards,
 Workshop Team
@@ -90,7 +79,7 @@ def registration_page():
         college = st.text_input("College Name")
         branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
         year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year"])
-        submit = st.form_submit_button("Submit")
+        submit = st.form_submit_button("Submit")  # 🔹 Changed from Register to Submit
 
     if submit:
         if not all([name, email, phone, college, branch, year]):
@@ -111,16 +100,16 @@ def registration_page():
             "College": college,
             "Branch": branch,
             "Year": year,
-            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "RegistrationID": ""  # Will be filled after payment
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_registration(registration_data)
-        st.success("✅ Submission successful... You are being directed to payment section")
-        time.sleep(3)
+        st.success("✅ Submission successful... You are being directed to payment section")  # 🔹 Changed message
+        time.sleep(3)  # wait 3 seconds before redirecting
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
         st.session_state["payment_confirmed"] = False
+        st.session_state["show_proceed"] = False
         st.session_state["thank_you"] = False
         st.rerun()
 
@@ -181,19 +170,7 @@ def payment_page():
                     st.error("⚠ Please enter a valid 12-digit numeric UPI Transaction Id before proceeding.")
                 else:
                     if "user_email" in st.session_state and "user_name" in st.session_state:
-                        registration_id = generate_registration_id()
-
-                        # Update CSV with Registration ID
-                        if os.path.exists(CSV_FILE):
-                            df = pd.read_csv(CSV_FILE)
-                            df.loc[df['Email'] == st.session_state["user_email"], 'RegistrationID'] = registration_id
-                            df.to_csv(CSV_FILE, index=False)
-
-                        sent = send_confirmation_email(
-                            st.session_state["user_email"],
-                            st.session_state["user_name"],
-                            registration_id
-                        )
+                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
                         if sent:
                             st.session_state["thank_you"] = True
                         else:
@@ -217,6 +194,7 @@ def thank_you_page():
         unsafe_allow_html=True
     )
 
+    # WhatsApp group button
     st.markdown(
         f"""
         <div style="text-align:center; margin-top:30px;">
@@ -231,11 +209,14 @@ def thank_you_page():
         unsafe_allow_html=True
     )
 
+
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
     st.session_state["registered"] = False
 if "payment_confirmed" not in st.session_state:
     st.session_state["payment_confirmed"] = False
+if "show_proceed" not in st.session_state:
+    st.session_state["show_proceed"] = False
 if "thank_you" not in st.session_state:
     st.session_state["thank_you"] = False
 
