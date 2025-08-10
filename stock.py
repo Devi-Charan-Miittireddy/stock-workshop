@@ -13,6 +13,7 @@ CSV_FILE = "registrations.csv"
 ADMIN_PASSWORD = st.secrets["app"]["admin_password"]
 EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
+WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- FUNCTIONS --------
 def send_confirmation_email(to_email, name):
@@ -101,6 +102,7 @@ def registration_page():
         st.session_state["user_name"] = name
         st.session_state["payment_confirmed"] = False
         st.session_state["show_proceed"] = False
+        st.session_state["thank_you"] = False
         st.rerun()
 
 def admin_page():
@@ -162,7 +164,7 @@ def payment_page():
                     if "user_email" in st.session_state and "user_name" in st.session_state:
                         sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
                         if sent:
-                            st.success("✅ Registration successful and details have been sent to your mail")
+                            st.session_state["thank_you"] = True
                         else:
                             st.error("❌ Failed to send registration email.")
 
@@ -170,9 +172,19 @@ def payment_page():
                         del st.session_state["user_name"]
 
                     st.session_state["payment_confirmed"] = True
-                    st.session_state["show_proceed"] = True
+                    st.rerun()
     else:
         st.info("You have already completed payment and registration.")
+
+def thank_you_page():
+    st.markdown(
+        "<h1 style='text-align: center; font-size: 60px; color: green;'>🎉 THANK YOU 🎉</h1>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        f"<h3 style='text-align: center;'>Join our WhatsApp group here: <a href='{WHATSAPP_LINK}' target='_blank'>Click to Join</a></h3>",
+        unsafe_allow_html=True
+    )
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
@@ -181,11 +193,15 @@ if "payment_confirmed" not in st.session_state:
     st.session_state["payment_confirmed"] = False
 if "show_proceed" not in st.session_state:
     st.session_state["show_proceed"] = False
+if "thank_you" not in st.session_state:
+    st.session_state["thank_you"] = False
 
 menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
 
 if menu == "Register":
-    if st.session_state["registered"]:
+    if st.session_state["thank_you"]:
+        thank_you_page()
+    elif st.session_state["registered"]:
         payment_page()
     else:
         registration_page()
