@@ -77,7 +77,7 @@ def registration_page():
         email = st.text_input("Email Address")
         phone = st.text_input("Phone Number")
         college = st.text_input("College Name")
-        branch = st.text_input("Branch")
+        branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
         year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
         submit = st.form_submit_button("Register")
 
