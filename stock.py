@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 import time
+import random
+import string
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -15,30 +17,22 @@ EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
-# -------- SAFE CSV READER --------
-def safe_read_csv(file_path):
-    """Safely read a CSV file, fixing or resetting if corrupted."""
-    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-        pd.DataFrame(columns=["Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"]).to_csv(file_path, index=False)
-        return pd.DataFrame(columns=["Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"])
-    try:
-        return pd.read_csv(file_path)
-    except pd.errors.ParserError:
-        st.warning("⚠ Registration data file was corrupted and has been reset.")
-        pd.DataFrame(columns=["Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"]).to_csv(file_path, index=False)
-        return pd.DataFrame(columns=["Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"])
-    except Exception as e:
-        st.error(f"Error reading CSV: {e}")
-        return pd.DataFrame(columns=["Name", "Email", "Phone", "College", "Branch", "Year", "Timestamp"])
-
 # -------- FUNCTIONS --------
-def send_confirmation_email(to_email, name):
+def generate_registration_id():
+    """Generate a unique registration ID with last 3 digits as numbers only."""
+    letters = ''.join(random.choices(string.ascii_uppercase, k=3))
+    numbers = ''.join(random.choices(string.digits, k=3))
+    return f"REG-{letters}{numbers}"
+
+def send_confirmation_email(to_email, name, reg_id):
     subject = "Workshop Registration Confirmation"
     body = f"""
 Hi {name},
 
 Thank you for registering for the Stock Market Workshop.
 We have received your registration successfully.
+
+Your Registration ID is: {reg_id}
 
 Regards,
 Workshop Team
@@ -62,14 +56,22 @@ Workshop Team
 def save_registration(data: dict):
     df = pd.DataFrame([data])
     if os.path.exists(CSV_FILE):
-        df.to_csv(CSV_FILE, mode='a', header=False, index=False)
+        try:
+            existing_df = pd.read_csv(CSV_FILE)
+            combined_df = pd.concat([existing_df, df], ignore_index=True)
+            combined_df.to_csv(CSV_FILE, index=False)
+        except pd.errors.EmptyDataError:
+            df.to_csv(CSV_FILE, index=False)
     else:
         df.to_csv(CSV_FILE, index=False)
 
 def get_registration_count():
     if os.path.exists(CSV_FILE):
-        df = safe_read_csv(CSV_FILE)
-        return len(df)
+        try:
+            df = pd.read_csv(CSV_FILE)
+            return len(df)
+        except pd.errors.EmptyDataError:
+            return 0
     return 0
 
 def delete_all_registrations():
@@ -95,19 +97,23 @@ def registration_page():
         college = st.text_input("College Name")
         branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
         year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year"])
-        submit = st.form_submit_button("Submit")  # 🔹 Changed from Register to Submit
+        submit = st.form_submit_button("Submit")
 
     if submit:
         if not all([name, email, phone, college, branch, year]):
             st.error("⚠ Please fill all fields before submitting.")
             return
 
-        # ✅ Duplicate email prevention
         if os.path.exists(CSV_FILE):
-            df = safe_read_csv(CSV_FILE)
-            if email.strip().lower() in df['Email'].str.lower().values:
-                st.error("⚠ This email is already registered. Please use a different email.")
-                return
+            try:
+                df = pd.read_csv(CSV_FILE)
+                if email.strip().lower() in df['Email'].str.lower().values:
+                    st.error("⚠ This email is already registered. Please use a different email.")
+                    return
+            except pd.errors.EmptyDataError:
+                pass
+
+        reg_id = generate_registration_id()
 
         registration_data = {
             "Name": name,
@@ -116,11 +122,13 @@ def registration_page():
             "College": college,
             "Branch": branch,
             "Year": year,
+            "Registration ID": reg_id,
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_registration(registration_data)
+        st.session_state["reg_id"] = reg_id
         st.success("✅ Submission successful... You are being directed to payment section")
-        time.sleep(3)  # wait 3 seconds before redirecting
+        time.sleep(3)
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
@@ -137,29 +145,31 @@ def admin_page():
         st.success(f"✅ Total Registered Participants: {get_registration_count()}")
 
         if os.path.exists(CSV_FILE):
-            df = safe_read_csv(CSV_FILE)
-            st.dataframe(df)
+            try:
+                df = pd.read_csv(CSV_FILE)
+                st.dataframe(df)
 
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download Registrations CSV",
-                data=csv,
-                file_name="registrations.csv",
-                mime="text/csv"
-            )
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Registrations CSV",
+                    data=csv,
+                    file_name="registrations.csv",
+                    mime="text/csv"
+                )
 
-            st.subheader("🗑 Delete All Registrations")
-            confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
-            if st.button("⚠ Confirm Delete", type="primary"):
-                if confirm_password == ADMIN_PASSWORD:
-                    if delete_all_registrations():
-                        st.success("✅ All registration data has been deleted.")
-                        st.rerun()
+                st.subheader("🗑 Delete All Registrations")
+                confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
+                if st.button("⚠ Confirm Delete", type="primary"):
+                    if confirm_password == ADMIN_PASSWORD:
+                        if delete_all_registrations():
+                            st.success("✅ All registration data has been deleted.")
+                            st.rerun()
+                        else:
+                            st.info("No registration data found.")
                     else:
-                        st.info("No registration data found.")
-                else:
-                    st.error("❌ Incorrect password. Deletion cancelled.")
-
+                        st.error("❌ Incorrect password. Deletion cancelled.")
+            except pd.errors.EmptyDataError:
+                st.info("No registrations yet.")
         else:
             st.info("No registrations yet.")
     elif password:
@@ -186,7 +196,8 @@ def payment_page():
                     st.error("⚠ Please enter a valid 12-digit numeric UPI Transaction Id before proceeding.")
                 else:
                     if "user_email" in st.session_state and "user_name" in st.session_state:
-                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
+                        reg_id = st.session_state.get("reg_id", generate_registration_id())
+                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"], reg_id)
                         if sent:
                             st.session_state["thank_you"] = True
                         else:
@@ -209,7 +220,6 @@ def thank_you_page():
         "<h3 style='text-align:center;'>Registration Successful... Details have been sent to your mail.</h3>",
         unsafe_allow_html=True
     )
-
     st.markdown(
         f"""
         <div style="text-align:center; margin-top:30px;">
