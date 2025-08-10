@@ -79,23 +79,12 @@ def registration_page():
         college = st.text_input("College Name")
         branch = st.selectbox("Branch", ["", "CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "CSD", "CSM", "CHEM"])
         year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year"])
-        password = st.text_input("Create a Password", type="password")
-        confirm_password = st.text_input("Confirm Password", type="password")
         submit = st.form_submit_button("Register")
 
     if submit:
-        if not all([name, email, phone, college, branch, year, password, confirm_password]):
+        if not all([name, email, phone, college, branch, year]):
             st.error("⚠ Please fill all fields before submitting.")
             return
-        if password != confirm_password:
-            st.error("⚠ Passwords do not match.")
-            return
-        if os.path.exists(CSV_FILE):
-            df = pd.read_csv(CSV_FILE)
-            if email in df['Email'].values:
-                st.error("⚠ Email already registered. Please log in instead.")
-                return
-
         registration_data = {
             "Name": name,
             "Email": email,
@@ -103,12 +92,11 @@ def registration_page():
             "College": college,
             "Branch": branch,
             "Year": year,
-            "Password": password,  # Store password in CSV (plain text for now)
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_registration(registration_data)
         st.success("✅ Registration successful... You are being directed to payment section")
-        time.sleep(3)
+        time.sleep(3)  # wait 3 seconds before redirecting
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
@@ -147,6 +135,7 @@ def admin_page():
                         st.info("No registration data found.")
                 else:
                     st.error("❌ Incorrect password. Deletion cancelled.")
+
         else:
             st.info("No registrations yet.")
     elif password:
@@ -178,8 +167,10 @@ def payment_page():
                             st.session_state["thank_you"] = True
                         else:
                             st.error("❌ Failed to send registration email.")
+
                         del st.session_state["user_email"]
                         del st.session_state["user_name"]
+
                     st.session_state["payment_confirmed"] = True
                     st.rerun()
     else:
@@ -194,6 +185,8 @@ def thank_you_page():
         "<h3 style='text-align:center;'>We appreciate your registration.</h3>",
         unsafe_allow_html=True
     )
+
+    # WhatsApp group button
     st.markdown(
         f"""
         <div style="text-align:center; margin-top:30px;">
@@ -208,34 +201,6 @@ def thank_you_page():
         unsafe_allow_html=True
     )
 
-def login_page():
-    st.title("🔐 User Login")
-    email = st.text_input("Email")
-    password = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        if not email or not password:
-            st.error("⚠ Please enter both email and password.")
-        else:
-            if os.path.exists(CSV_FILE):
-                df = pd.read_csv(CSV_FILE)
-                if email in df['Email'].values:
-                    stored_password = df.loc[df['Email'] == email, 'Password'].values[0]
-                    if password == stored_password:
-                        st.success("✅ Login successful!")
-                        st.session_state["user_email"] = email
-                        st.session_state["user_name"] = df.loc[df['Email'] == email, 'Name'].values[0]
-                        if st.session_state.get("payment_confirmed", False):
-                            st.session_state["thank_you"] = True
-                        else:
-                            st.session_state["registered"] = True
-                        st.rerun()
-                    else:
-                        st.error("❌ Incorrect password.")
-                else:
-                    st.error("❌ Email not found. Please register first.")
-            else:
-                st.error("No registered users found. Please register first.")
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
@@ -247,7 +212,7 @@ if "show_proceed" not in st.session_state:
 if "thank_you" not in st.session_state:
     st.session_state["thank_you"] = False
 
-menu = st.sidebar.selectbox("Select Mode", ["Register", "Login", "Admin"])
+menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
 
 if menu == "Register":
     if st.session_state["thank_you"]:
@@ -256,11 +221,5 @@ if menu == "Register":
         payment_page()
     else:
         registration_page()
-elif menu == "Login":
-    login_page()
-    if st.session_state.get("thank_you"):
-        thank_you_page()
-    elif st.session_state.get("registered"):
-        payment_page()
 elif menu == "Admin":
     admin_page()
