@@ -21,25 +21,45 @@ WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 # -------- BACKGROUND FUNCTION --------
 def set_background(image_file):
     """Set a background image for the app."""
-    with open(image_file, "rb") as f:
-        data = f.read()
-    encoded = base64.b64encode(data).decode()
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url("data:image/png;base64,{encoded}");
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    try:
+        with open(image_file, "rb") as f:
+            data = f.read()
+        encoded = base64.b64encode(data).decode()
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/png;base64,{encoded}");
+                background-size: cover;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                color: white; /* Make all text white for contrast */
+            }}
+            /* Form and input background */
+            .stTextInput>div>div>input,
+            .stSelectbox>div>div>select,
+            .stTextArea>div>div>textarea {{
+                background-color: rgba(0, 0, 0, 0.6);
+                color: white;
+            }}
+            /* Sidebar */
+            section[data-testid="stSidebar"] {{
+                background-color: rgba(0, 0, 0, 0.8);
+                color: white;
+            }}
+            /* Success/Error messages */
+            .stSuccess, .stError, .stWarning {{
+                background-color: rgba(0,0,0,0.7) !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+    except FileNotFoundError:
+        st.warning("Background image not found. Please make sure the file exists.")
 
-# Call background before rendering
-set_background("A_seamless_background_pattern_features_financial_a.png")
+# ✅ Call background before rendering
+set_background("background.png")
 
 # -------- FUNCTIONS --------
 def generate_registration_id():
@@ -108,7 +128,7 @@ def delete_all_registrations():
 def registration_page():
     st.title("📈 Stock Market Workshop Registration")
     st.markdown(
-        "<div style='background-color:#ffeeba; padding:10px; border-radius:5px; color:#856404; font-weight:bold;'>"
+        "<div style='background-color:rgba(255, 215, 0, 0.7); padding:10px; border-radius:5px; color:black; font-weight:bold;'>"
         "⚠ Once you submit the form, your details cannot be changed. Please check carefully before registering."
         "</div>",
         unsafe_allow_html=True
@@ -237,11 +257,11 @@ def payment_page():
 
 def thank_you_page():
     st.markdown(
-        "<h1 style='text-align:center; font-size:60px; color:green;'>🎉 THANK YOU! 🎉</h1>",
+        "<h1 style='text-align:center; font-size:60px; color:gold;'>🎉 THANK YOU! 🎉</h1>",
         unsafe_allow_html=True
     )
     st.markdown(
-        "<h3 style='text-align:center;'>Registration Successful... Details have been sent to your mail.</h3>",
+        "<h3 style='text-align:center; color:white;'>Registration Successful... Details have been sent to your mail.</h3>",
         unsafe_allow_html=True
     )
     st.markdown(
