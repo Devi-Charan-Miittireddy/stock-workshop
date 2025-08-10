@@ -101,7 +101,8 @@ def registration_page():
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
         st.session_state["payment_confirmed"] = False
-        st.rerun()
+        st.session_state["confirmation_page"] = False
+        st.experimental_rerun()
 
 def admin_page():
     st.title("🔑 Admin Panel")
@@ -128,7 +129,7 @@ def admin_page():
                 if confirm_password == ADMIN_PASSWORD:
                     if delete_all_registrations():
                         st.success("✅ All registration data has been deleted.")
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.info("No registration data found.")
                 else:
@@ -160,7 +161,6 @@ def payment_page():
                     st.error("⚠ Please enter a valid 12-digit numeric UPI transaction Id before confirming.")
                 else:
                     st.session_state["payment_confirmed"] = True
-                    st.success("✅ Payment confirmed! Thank you for registering.")
 
                     if "user_email" in st.session_state and "user_name" in st.session_state:
                         sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
@@ -172,20 +172,38 @@ def payment_page():
                         del st.session_state["user_email"]
                         del st.session_state["user_name"]
 
+                    # Redirect to confirmation page
+                    st.session_state["confirmation_page"] = True
+                    st.experimental_rerun()
+
     else:
         st.success("✅ Payment has been confirmed. Thank you!")
         st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
+
+def confirmation_page():
+    st.title("✅ Registration Successful")
+    st.markdown(
+        "<div style='background-color:#d4edda; padding:20px; border-radius:5px; color:#155724; font-weight:bold; font-size:18px;'>"
+        "Registration successful...! Confirmation mail has been sent to your email."
+        "</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
     st.session_state["registered"] = False
 if "payment_confirmed" not in st.session_state:
     st.session_state["payment_confirmed"] = False
+if "confirmation_page" not in st.session_state:
+    st.session_state["confirmation_page"] = False
 
 menu = st.sidebar.selectbox("Select Mode", ["Register", "Admin"])
 
 if menu == "Register":
-    if st.session_state["registered"]:
+    if st.session_state["confirmation_page"]:
+        confirmation_page()
+    elif st.session_state["registered"]:
         payment_page()
     else:
         registration_page()
