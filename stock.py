@@ -103,46 +103,7 @@ def registration_page():
         st.session_state["payment_confirmed"] = False
         st.session_state["show_confirmation"] = False
         st.experimental_rerun()
-        return  # <--- Important to stop function here after rerun!
-
-def payment_page():
-    st.title("💳 Payment Section")
-    st.write("Please scan the QR code below to make your payment:")
-
-    try:
-        qr_image = Image.open("payment_qr.jpg")
-        st.image(qr_image, caption="Scan to Pay", use_container_width=False, width=300)
-    except FileNotFoundError:
-        st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
-
-    transaction_id = st.text_input("Enter UPI transaction Id (12 digits only)")
-
-    if not st.session_state.get("payment_confirmed", False):
-        uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
-        if uploaded_file is not None:
-            st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
-            if st.button("Confirm to Upload"):
-                # Validate transaction id length and digits only
-                if len(transaction_id.strip()) != 12 or not transaction_id.strip().isdigit():
-                    st.error("⚠ Please enter a valid 12-digit numeric UPI transaction Id before confirming.")
-                else:
-                    st.session_state["payment_confirmed"] = True
-                    st.success("✅ Payment confirmed! Thank you for registering.")
-                    if "user_email" in st.session_state and "user_name" in st.session_state:
-                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
-                        if sent:
-                            st.success("📧 Registration confirmation email sent successfully!")
-                        else:
-                            st.error("❌ Failed to send registration email.")
-                        del st.session_state["user_email"]
-                        del st.session_state["user_name"]
-                    st.experimental_rerun()
-                    return
-
-    else:
-        # After confirmation, show final success page with WhatsApp link
-        st.success("✅ Payment has been confirmed. Thank you!")
-        st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
+        return  # Important to prevent the rerun error
 
 def admin_page():
     st.title("🔑 Admin Panel")
@@ -175,8 +136,55 @@ def admin_page():
                         st.info("No registration data found.")
                 else:
                     st.error("❌ Incorrect password. Deletion cancelled.")
+
+        else:
+            st.info("No registrations yet.")
     elif password:
         st.error("Incorrect password")
+
+def payment_page():
+    st.title("💳 Payment Section")
+    st.write("Please scan the QR code below to make your payment:")
+
+    try:
+        qr_image = Image.open("payment_qr.jpg")
+        st.image(qr_image, caption="Scan to Pay", use_container_width=False, width=300)
+    except FileNotFoundError:
+        st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
+
+    transaction_id = st.text_input("Enter UPI transaction ID (12 digits)")
+
+    uploaded_file = None
+    if not st.session_state.get("payment_confirmed", False):
+        uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
+        if uploaded_file is not None:
+            st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
+            if st.button("Confirm to Upload"):
+                if not transaction_id.strip():
+                    st.error("⚠ Please enter the UPI transaction ID before confirming.")
+                elif len(transaction_id.strip()) != 12 or not transaction_id.strip().isdigit():
+                    st.error("⚠ UPI transaction ID must be exactly 12 digits.")
+                else:
+                    st.session_state["payment_confirmed"] = True
+                    st.session_state["show_confirmation"] = True
+                    st.session_state["uploaded_file"] = uploaded_file
+                    # Send confirmation email here
+                    if "user_email" in st.session_state and "user_name" in st.session_state:
+                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
+                        if sent:
+                            st.success("📧 Registration confirmation email sent successfully!")
+                        else:
+                            st.error("❌ Failed to send registration email.")
+
+                        del st.session_state["user_email"]
+                        del st.session_state["user_name"]
+
+                    st.experimental_rerun()
+                    return
+
+    if st.session_state.get("show_confirmation", False):
+        st.success("✅ Registration successful...! Confirmation mail has been sent to your email.")
+        st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
