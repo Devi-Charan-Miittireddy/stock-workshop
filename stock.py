@@ -85,6 +85,14 @@ def registration_page():
         if not all([name, email, phone, college, branch, year]):
             st.error("⚠ Please fill all fields before submitting.")
             return
+
+        # ✅ Duplicate email prevention
+        if os.path.exists(CSV_FILE):
+            df = pd.read_csv(CSV_FILE)
+            if email.strip().lower() in df['Email'].str.lower().values:
+                st.error("⚠ This email is already registered. Please use a different email.")
+                return
+
         registration_data = {
             "Name": name,
             "Email": email,
@@ -200,7 +208,6 @@ def thank_you_page():
         """,
         unsafe_allow_html=True
     )
-
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
