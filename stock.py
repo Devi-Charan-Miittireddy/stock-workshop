@@ -160,7 +160,7 @@ def payment_page():
 
     if uploaded_file is not None:
         st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
-        if st.button("Confirm Payment"):
+        if st.button("Confirm to upload"):
             st.session_state["payment_confirmed"] = True
             st.success("✅ Payment confirmed! Thank you for registering.")
 
