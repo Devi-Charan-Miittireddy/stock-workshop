@@ -178,13 +178,29 @@ def payment_page():
 
 def thank_you_page():
     st.markdown(
-        "<h1 style='text-align: center; font-size: 60px; color: green;'>🎉 THANK YOU 🎉</h1>",
+        "<h1 style='text-align:center; font-size:60px; color:green;'>🎉 THANK YOU! 🎉</h1>",
         unsafe_allow_html=True
     )
     st.markdown(
-        f"<h3 style='text-align: center;'>Join our WhatsApp group here: <a href='{WHATSAPP_LINK}' target='_blank'>Click to Join</a></h3>",
+        "<h3 style='text-align:center;'>We appreciate your registration.</h3>",
         unsafe_allow_html=True
     )
+
+    # WhatsApp group button
+    st.markdown(
+        f"""
+        <div style="text-align:center; margin-top:30px;">
+            <a href="{WHATSAPP_LINK}" target="_blank" 
+               style="background-color:#25D366; color:white; padding:15px 30px; 
+                      text-decoration:none; font-size:20px; border-radius:8px; 
+                      display:inline-block;">
+                📲 Join WhatsApp Group
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
