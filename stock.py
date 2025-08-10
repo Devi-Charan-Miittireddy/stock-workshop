@@ -8,7 +8,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from PIL import Image
 
-# -------- CONFIG --------
+# -------- CONFIG -------- 
 CSV_FILE = "registrations.csv"
 ADMIN_PASSWORD = st.secrets["app"]["admin_password"]
 EMAIL_ADDRESS = st.secrets["email"]["address"]
@@ -76,7 +76,16 @@ def registration_page():
         name = st.text_input("Full Name", max_chars=50)
         email = st.text_input("Email Address")
         phone = st.text_input("Phone Number")
-        college = st.text_input("College Name")
+
+        # College selection with manual input option
+        college_option = st.selectbox("College", ["", "ANITS", "Type manually"])
+        if college_option == "Type manually":
+            college = st.text_input("Enter College Name")
+        elif college_option == "ANITS":
+            college = "ANITS"
+        else:
+            college = ""
+
         branch = st.text_input("Branch")
         year = st.selectbox("Year", ["", "1st Year", "2nd Year", "3rd Year", "4th Year", "Other"])
         submit = st.form_submit_button("Register")
@@ -96,7 +105,7 @@ def registration_page():
         }
         save_registration(registration_data)
         st.success("✅ Registration successful... You are being directed to payment section")
-        time.sleep(2)  # wait for 3 seconds before moving to payment
+        time.sleep(3)  # wait for 3 seconds before moving to payment
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
