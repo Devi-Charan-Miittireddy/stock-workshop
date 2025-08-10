@@ -1,22 +1,29 @@
 import streamlit as st
 import pandas as pd
 import os
-import time
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from PIL import Image
 
-# -------- CONFIG -------- 
+# -------- CONFIG --------
 CSV_FILE = "registrations.csv"
-ADMIN_PASSWORD = st.secrets["app"]["admin_password"]
-EMAIL_ADDRESS = st.secrets["email"]["address"]
-EMAIL_PASSWORD = st.secrets["email"]["password"]
+
+# Safe defaults if secrets not set (useful for local run)
+ADMIN_PASSWORD = st.secrets.get("app", {}).get("admin_password", "admin123")
+EMAIL_ADDRESS = st.secrets.get("email", {}).get("address", "")
+EMAIL_PASSWORD = st.secrets.get("email", {}).get("password", "")
+
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
+QR_IMAGE_PATH = "payment_qr.jpg"  # Must be in repo
 
 # -------- FUNCTIONS --------
 def send_confirmation_email(to_email, name):
+    if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
+        st.error("Email credentials not configured in secrets.")
+        return False
+
     subject = "Workshop Registration Confirmation"
     body = f"""
 Hi {name},
@@ -52,8 +59,7 @@ def save_registration(data: dict):
 
 def get_registration_count():
     if os.path.exists(CSV_FILE):
-        df = pd.read_csv(CSV_FILE)
-        return len(df)
+        return len(pd.read_csv(CSV_FILE))
     return 0
 
 def delete_all_registrations():
@@ -65,12 +71,7 @@ def delete_all_registrations():
 # -------- PAGES --------
 def registration_page():
     st.title("📈 Stock Market Workshop Registration")
-    st.markdown(
-        "<div style='background-color:#ffeeba; padding:10px; border-radius:5px; color:#856404; font-weight:bold;'>"
-        "⚠ Once you submit the form, your details cannot be changed. Please check carefully before registering."
-        "</div>",
-        unsafe_allow_html=True
-    )
+    st.warning("⚠ Once you submit the form, your details cannot be changed. Please check carefully before registering.")
 
     with st.form(key='registration_form'):
         name = st.text_input("Full Name", max_chars=50)
@@ -85,8 +86,8 @@ def registration_page():
         if not all([name, email, phone, college, branch, year]):
             st.error("⚠ Please fill all fields before submitting.")
             return
-        
-        registration_data = {
+
+        save_registration({
             "Name": name,
             "Email": email,
             "Phone": phone,
@@ -94,27 +95,12 @@ def registration_page():
             "Branch": branch,
             "Year": year,
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        save_registration(registration_data)
+        })
 
-        # Instead of sleep, set a session flag to show success message
-        st.session_state["registration_success"] = True
-
-        # Set session state before rerun
         st.session_state["registered"] = True
         st.session_state["user_email"] = email
         st.session_state["user_name"] = name
-        st.session_state["payment_confirmed"] = False
-        st.session_state["confirmation_page"] = False
-
-        # Rerun immediately after setting session states
         st.experimental_rerun()
-
-    # Show the success message after rerun (if flag is set)
-    if st.session_state.get("registration_success", False):
-        st.success("✅ Registration successful... You are being directed to payment section")
-        # Remove the flag so message disappears on next rerun
-        del st.session_state["registration_success"]
 
 def admin_page():
     st.title("🔑 Admin Panel")
@@ -127,26 +113,21 @@ def admin_page():
             df = pd.read_csv(CSV_FILE)
             st.dataframe(df)
 
-            csv = df.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Download Registrations CSV",
-                data=csv,
+                data=df.to_csv(index=False).encode('utf-8'),
                 file_name="registrations.csv",
                 mime="text/csv"
             )
 
             st.subheader("🗑 Delete All Registrations")
-            confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password", key="delete_confirm")
-            if st.button("⚠ Confirm Delete", type="primary"):
-                if confirm_password == ADMIN_PASSWORD:
-                    if delete_all_registrations():
-                        st.success("✅ All registration data has been deleted.")
-                        st.experimental_rerun()
-                    else:
-                        st.info("No registration data found.")
+            confirm_password = st.text_input("Re-enter Admin Password to Confirm Deletion:", type="password")
+            if st.button("⚠ Confirm Delete"):
+                if confirm_password == ADMIN_PASSWORD and delete_all_registrations():
+                    st.success("✅ All registration data deleted.")
+                    st.experimental_rerun()
                 else:
-                    st.error("❌ Incorrect password. Deletion cancelled.")
-
+                    st.error("❌ Incorrect password or no data found.")
         else:
             st.info("No registrations yet.")
     elif password:
@@ -156,58 +137,32 @@ def payment_page():
     st.title("💳 Payment Section")
     st.write("Please scan the QR code below to make your payment:")
 
-    try:
-        qr_image = Image.open("payment_qr.jpg")
-        st.image(qr_image, caption="Scan to Pay", use_container_width=False, width=300)
-    except FileNotFoundError:
-        st.error("QR code image not found. Please upload 'payment_qr.jpg' to your repo.")
+    if os.path.exists(QR_IMAGE_PATH):
+        st.image(QR_IMAGE_PATH, caption="Scan to Pay", width=300)
+    else:
+        st.error(f"QR code image '{QR_IMAGE_PATH}' not found in repo.")
 
-    transaction_id = st.text_input("Enter UPI transaction Id (12 digits only)")
+    transaction_id = st.text_input("Enter UPI Transaction ID (12 digits)")
 
     if not st.session_state.get("payment_confirmed", False):
-        uploaded_file = st.file_uploader("Upload payment screenshot here", type=["png", "jpg", "jpeg"])
-        if uploaded_file is not None:
-            st.image(uploaded_file, caption="Uploaded payment screenshot", use_container_width=True)
-            if st.button("Confirm to Upload"):
-                if len(transaction_id) != 12 or not transaction_id.isdigit():
-                    st.error("⚠ Please enter a valid 12-digit numeric UPI transaction Id before confirming.")
-                else:
-                    st.session_state["payment_confirmed"] = True
-
-                    if "user_email" in st.session_state and "user_name" in st.session_state:
-                        sent = send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"])
-                        if sent:
-                            st.success("📧 Registration confirmation email sent successfully!")
-                        else:
-                            st.error("❌ Failed to send registration email.")
-
-                        del st.session_state["user_email"]
-                        del st.session_state["user_name"]
-
-                    # Redirect to confirmation page
-                    st.session_state["confirmation_page"] = True
-                    st.experimental_rerun()
-
+        uploaded_file = st.file_uploader("Upload payment screenshot", type=["png", "jpg", "jpeg"])
+        if uploaded_file is not None and st.button("Confirm Payment"):
+            if len(transaction_id) != 12 or not transaction_id.isdigit():
+                st.error("⚠ Please enter a valid 12-digit numeric UPI transaction ID.")
+            else:
+                st.session_state["payment_confirmed"] = True
+                if send_confirmation_email(st.session_state["user_email"], st.session_state["user_name"]):
+                    st.success("📧 Confirmation email sent!")
+                st.session_state["confirmation_page"] = True
+                st.experimental_rerun()
     else:
-        st.success("✅ Payment has been confirmed. Thank you!")
-        st.markdown(
-            f"<div style='margin-top:20px;'><a href='{WHATSAPP_LINK}' target='_blank' style='font-weight:bold; color:#25D366; font-size:18px;'>💬 Join our WhatsApp Group</a></div>",
-            unsafe_allow_html=True
-        )
+        st.success("✅ Payment confirmed.")
+        st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
 
 def confirmation_page():
     st.title("✅ Registration Successful")
-    st.markdown(
-        "<div style='background-color:#d4edda; padding:20px; border-radius:5px; color:#155724; font-weight:bold; font-size:18px;'>"
-        "Registration successful...! Confirmation mail has been sent to your email."
-        "</div>",
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        f"<div style='margin-top:20px;'><a href='{WHATSAPP_LINK}' target='_blank' style='font-weight:bold; color:#25D366; font-size:18px;'>💬 Join our WhatsApp Group</a></div>",
-        unsafe_allow_html=True
-    )
-
+    st.success("Registration successful! Confirmation mail sent to your email.")
+    st.markdown(f"[💬 Join our WhatsApp Group]({WHATSAPP_LINK})", unsafe_allow_html=True)
 
 # -------- APP NAVIGATION --------
 if "registered" not in st.session_state:
