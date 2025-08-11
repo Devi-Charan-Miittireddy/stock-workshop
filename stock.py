@@ -20,7 +20,7 @@ WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- BACKGROUND FUNCTION --------
 def set_background(image_file):
-    """Set a background image for the app."""
+    """Set a background image for the app (desktop + mobile compatible)."""
     try:
         with open(image_file, "rb") as f:
             data = f.read()
@@ -29,24 +29,33 @@ def set_background(image_file):
             f"""
             <style>
             .stApp {{
-                background-image: url("data:image/png;base64,{encoded}");
+                background: url("data:image/png;base64,{encoded}") no-repeat center center fixed;
                 background-size: cover;
-                background-repeat: no-repeat;
-                background-attachment: fixed;
-                color: white; /* Make all text white for contrast */
+                color: white;
             }}
-            /* Form and input background */
+
+            /* Mobile view fix */
+            @media (max-width: 768px) {{
+                .stApp {{
+                    background-attachment: scroll;
+                    background-size: cover;
+                }}
+            }}
+
+            /* Form inputs styling */
             .stTextInput>div>div>input,
             .stSelectbox>div>div>select,
             .stTextArea>div>div>textarea {{
                 background-color: rgba(0, 0, 0, 0.6);
                 color: white;
             }}
+
             /* Sidebar */
             section[data-testid="stSidebar"] {{
                 background-color: rgba(0, 0, 0, 0.8);
                 color: white;
             }}
+
             /* Success/Error messages */
             .stSuccess, .stError, .stWarning {{
                 background-color: rgba(0,0,0,0.7) !important;
