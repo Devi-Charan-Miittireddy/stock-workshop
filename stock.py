@@ -39,6 +39,7 @@ def set_background(image_file):
                 .stApp {{
                     background-attachment: scroll;
                     background-size: cover;
+                    background-position: center;
                 }}
             }}
 
