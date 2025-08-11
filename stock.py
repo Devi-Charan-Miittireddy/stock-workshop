@@ -18,58 +18,44 @@ EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
 WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
-# -------- BACKGROUND FUNCTION --------
-def set_background(image_file):
-    """Set a background image for the app (desktop + mobile compatible)."""
-    try:
-        with open(image_file, "rb") as f:
-            data = f.read()
-        encoded = base64.b64encode(data).decode()
-        st.markdown(
-            f"""
-            <style>
-            .stApp {{
-                background: url("data:image/png;base64,{encoded}") no-repeat center center fixed;
-                background-size: cover;
-                color: white;
-            }}
-
-            /* Mobile view fix */
-            @media (max-width: 768px) {{
-                .stApp {{
-                    background-attachment: scroll;
-                    background-size: cover;
-                    background-position: center;
-                }}
-            }}
-
-            /* Form inputs styling */
-            .stTextInput>div>div>input,
-            .stSelectbox>div>div>select,
-            .stTextArea>div>div>textarea {{
-                background-color: rgba(0, 0, 0, 0.6);
-                color: white;
-            }}
-
-            /* Sidebar */
-            section[data-testid="stSidebar"] {{
-                background-color: rgba(0, 0, 0, 0.8);
-                color: white;
-            }}
-
-            /* Success/Error messages */
-            .stSuccess, .stError, .stWarning {{
-                background-color: rgba(0,0,0,0.7) !important;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-    except FileNotFoundError:
-        st.warning("Background image not found. Please make sure the file exists.")
-
-# ✅ Call background before rendering
-set_background("background.png")
+# -------- GLOBAL BLACK BACKGROUND --------
+st.markdown(
+    """
+    <style>
+    html, body, [class*="css"] {
+        background-color: black !important;
+        color: white !important;
+    }
+    .stApp {
+        background-color: black !important;
+        background-image: none !important;
+    }
+    /* Inputs, selects, text areas */
+    .stTextInput>div>div>input,
+    .stSelectbox>div>div>select,
+    .stTextArea>div>div>textarea {
+        background-color: rgba(0,0,0,0.6) !important;
+        color: white !important;
+    }
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: rgba(0,0,0,0.85) !important;
+        color: white !important;
+    }
+    /* Dataframe/table background */
+    .dataframe {
+        background-color: black !important;
+        color: white !important;
+    }
+    /* Success/Error/Warning boxes */
+    .stAlert {
+        background-color: rgba(0,0,0,0.7) !important;
+        color: white !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # -------- FUNCTIONS --------
 def generate_registration_id():
@@ -298,7 +284,6 @@ if "show_proceed" not in st.session_state:
 if "thank_you" not in st.session_state:
     st.session_state["thank_you"] = False
 
-# ✅ Replaced selectbox with radio (bullets)
 menu = st.sidebar.radio("Select Mode", ["Register", "Admin"])
 
 if menu == "Register":
