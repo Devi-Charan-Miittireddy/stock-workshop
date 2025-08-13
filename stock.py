@@ -20,7 +20,7 @@ WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- BACKGROUND FUNCTION --------
 def set_background(image_file):
-    """Set a background image for the app (desktop + mobile compatible)."""
+    """Set a background image for the app (desktop + mobile compatible) and style inputs."""
     try:
         with open(image_file, "rb") as f:
             data = f.read()
@@ -43,18 +43,39 @@ def set_background(image_file):
                 }}
             }}
 
-            /* Form inputs styling */
+            /* Label text white */
+            label, .stTextInput label, .stSelectbox label {{
+                color: white !important;
+                font-weight: bold;
+            }}
+
+            /* Input text white */
+            input, select, textarea {{
+                color: white !important;
+            }}
+
+            /* Input box background transparent dark */
             .stTextInput>div>div>input,
             .stSelectbox>div>div>select,
             .stTextArea>div>div>textarea {{
-                background-color: rgba(0, 0, 0, 0.6);
-                color: white;
+                background-color: rgba(0, 0, 0, 0.6) !important;
+                color: white !important;
             }}
 
-            /* Sidebar */
+            /* Dropdown text */
+            .stSelectbox div[data-baseweb="select"] > div {{
+                color: white !important;
+            }}
+
+            /* Sidebar styling */
             section[data-testid="stSidebar"] {{
                 background-color: rgba(0, 0, 0, 0.8);
                 color: white;
+            }}
+
+            /* Submit button text white */
+            button[kind="primary"] {{
+                color: white !important;
             }}
 
             /* Success/Error messages */
@@ -298,7 +319,7 @@ if "show_proceed" not in st.session_state:
 if "thank_you" not in st.session_state:
     st.session_state["thank_you"] = False
 
-# ✅ Replaced selectbox with radio (bullets)
+# ✅ Sidebar menu
 menu = st.sidebar.radio("Select Mode", ["Register", "Admin"])
 
 if menu == "Register":
