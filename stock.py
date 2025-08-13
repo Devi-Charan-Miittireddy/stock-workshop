@@ -20,7 +20,7 @@ WHATSAPP_LINK = "https://chat.whatsapp.com/KpkyyyevxqmFOnkaZUsTo2"
 
 # -------- BACKGROUND FUNCTION --------
 def set_background(image_file):
-    """Set a background image for the app (desktop + mobile compatible) and style inputs."""
+    """Set a background image for the app (desktop + mobile compatible)."""
     try:
         with open(image_file, "rb") as f:
             data = f.read()
@@ -34,7 +34,6 @@ def set_background(image_file):
                 color: white;
             }}
 
-            /* Mobile view fix */
             @media (max-width: 768px) {{
                 .stApp {{
                     background-attachment: scroll;
@@ -43,44 +42,47 @@ def set_background(image_file):
                 }}
             }}
 
-            /* Label text white */
-            label, .stTextInput label, .stSelectbox label {{
+            /* Form inputs styling */
+            .stTextInput>div>div>input,
+            .stSelectbox>div>div>select,
+            .stTextArea>div>div>textarea {{
+                background-color: rgba(0, 0, 0, 0.6);
+                color: white;
+            }}
+
+            /* Form labels in white */
+            label, .css-16huue1, .css-1fv8s86, .stSelectbox label {{
                 color: white !important;
                 font-weight: bold;
             }}
 
-            /* Input text white */
-            input, select, textarea {{
-                color: white !important;
-            }}
-
-            /* Input box background transparent dark */
-            .stTextInput>div>div>input,
-            .stSelectbox>div>div>select,
-            .stTextArea>div>div>textarea {{
-                background-color: rgba(0, 0, 0, 0.6) !important;
-                color: white !important;
-            }}
-
-            /* Dropdown text */
-            .stSelectbox div[data-baseweb="select"] > div {{
-                color: white !important;
-            }}
-
-            /* Sidebar styling */
+            /* Sidebar */
             section[data-testid="stSidebar"] {{
                 background-color: rgba(0, 0, 0, 0.8);
                 color: white;
             }}
 
-            /* Submit button text white */
-            button[kind="primary"] {{
-                color: white !important;
-            }}
-
             /* Success/Error messages */
             .stSuccess, .stError, .stWarning {{
                 background-color: rgba(0,0,0,0.7) !important;
+            }}
+
+            /* Submit button custom gold style */
+            div.stButton > button[kind="primary"] {{
+                background: linear-gradient(90deg, #FFD700, #FFC300);
+                color: white !important;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }}
+
+            div.stButton > button[kind="primary"]:hover {{
+                background: linear-gradient(90deg, #FFC300, #FFB000);
+                transform: scale(1.05);
             }}
             </style>
             """,
@@ -319,7 +321,6 @@ if "show_proceed" not in st.session_state:
 if "thank_you" not in st.session_state:
     st.session_state["thank_you"] = False
 
-# ✅ Sidebar menu
 menu = st.sidebar.radio("Select Mode", ["Register", "Admin"])
 
 if menu == "Register":
